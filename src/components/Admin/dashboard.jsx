@@ -6,7 +6,7 @@ import CreateStudent from './stud';
 import ProfessorList from './profList';
 import StudentList from './studList';
 import ArchiveManager from './archive';
-import './Archive.css';
+import './archive.css';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('createProf');
