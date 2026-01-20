@@ -1,0 +1,126 @@
+import { useState } from 'react';
+import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import './prof.css';
+
+function ProfessorDashboard() {
+  const [activeTab, setActiveTab] = useState('mark');
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      await signOut(auth);
+      navigate('/login');
+    }
+  };
+
+  return (
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <div className="header-content">
+          <h1>📚 Professor Dashboard</h1>
+          <div className="header-actions">
+            <span className="user-name">Welcome, {auth.currentUser?.displayName}</span>
+            <button className="btn-logout" onClick={handleLogout}>Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <div className="container">
+        {/* Stats Section */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <h3>TOTAL CLASSES</h3>
+            <div className="stat-number">0</div>
+          </div>
+          <div className="stat-card">
+            <h3>THIS WEEK</h3>
+            <div className="stat-number">0</div>
+          </div>
+          <div className="stat-card">
+            <h3>THIS MONTH</h3>
+            <div className="stat-number">0</div>
+          </div>
+          <div className="stat-card">
+            <h3>AVG. RATING</h3>
+            <div className="stat-number">-</div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="tabs">
+          <button 
+            className={`tab ${activeTab === 'mark' ? 'active' : ''}`}
+            onClick={() => setActiveTab('mark')}
+          >
+            Mark Attendance
+          </button>
+          <button 
+            className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            History
+          </button>
+          <button 
+            className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveTab('calendar')}
+          >
+            Schedule
+          </button>
+          <button 
+            className={`tab ${activeTab === 'assessments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assessments')}
+          >
+            Assessments
+          </button>
+          <button 
+            className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            Profile
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="tab-content">
+          {activeTab === 'mark' && (
+            <div className="card">
+              <h2>Mark Attendance</h2>
+              <p className="placeholder">Mark Attendance component will be added here...</p>
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="card">
+              <h2>Attendance History</h2>
+              <p className="placeholder">History component will be added here...</p>
+            </div>
+          )}
+
+          {activeTab === 'calendar' && (
+            <div className="card">
+              <h2>Class Schedule</h2>
+              <p className="placeholder">Calendar component will be added here...</p>
+            </div>
+          )}
+
+          {activeTab === 'assessments' && (
+            <div className="card">
+              <h2>Student Assessments</h2>
+              <p className="placeholder">Assessments component will be added here...</p>
+            </div>
+          )}
+
+          {activeTab === 'profile' && (
+            <div className="card">
+              <h2>Profile Settings</h2>
+              <p className="placeholder">Profile component will be added here...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ProfessorDashboard;
