@@ -1,7 +1,7 @@
 // src/App.jsx - Updated with AuthContext
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './components/auth/login';
+import Login from './components/Auth/login';
 import AdminDashboard from './components/admin/dashboard';
 import StudentDashboard from './components/student/Dashboard';
 import ProfessorDashboard from './components/professor/Dashboard';
