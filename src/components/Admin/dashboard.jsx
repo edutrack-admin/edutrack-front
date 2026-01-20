@@ -1,6 +1,7 @@
+// dashboard.jsx - Admin Dashboard (Fixed for MongoDB)
 import { useState } from 'react';
-import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../../services/api';
 import CreateProfessor from './prof';
 import CreateStudent from './stud';
 import ProfessorList from './profList';
@@ -14,10 +15,20 @@ function AdminDashboard() {
 
   const handleLogout = async () => {
     if (confirm('Are you sure you want to logout?')) {
-      await signOut(auth);
+      // Clear localStorage
+      auth.logout();
+      
+      // Redirect to login
       navigate('/login');
+      
+      // Force reload to clear state
+      window.location.reload();
     }
   };
+
+  // Get user info from localStorage
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = userData.fullName || 'Admin';
 
   return (
     <div className="dashboard">
@@ -25,7 +36,7 @@ function AdminDashboard() {
         <div className="header-content">
           <h1>⚙️ Admin Dashboard</h1>
           <div className="header-actions">
-            <span className="user-name">Welcome, Admin</span>
+            <span className="user-name">Welcome, {userName}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
         </div>
@@ -69,13 +80,9 @@ function AdminDashboard() {
         {/* Tab Content */}
         <div className="tab-content">
           {activeTab === 'createProf' && <CreateProfessor />}
-
           {activeTab === 'createStud' && <CreateStudent />}
-
           {activeTab === 'professors' && <ProfessorList />}
-
           {activeTab === 'students' && <StudentList />}
-
           {activeTab === 'archive' && <ArchiveManager />}
         </div>
       </div>

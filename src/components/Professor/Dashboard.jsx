@@ -1,6 +1,7 @@
+// Dashboard.jsx - Professor Dashboard (Fixed for MongoDB)
 import { useState } from 'react';
-import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../../services/api';
 import './prof.css';
 
 function ProfessorDashboard() {
@@ -9,10 +10,20 @@ function ProfessorDashboard() {
 
   const handleLogout = async () => {
     if (confirm('Are you sure you want to logout?')) {
-      await signOut(auth);
+      // Clear localStorage
+      auth.logout();
+      
+      // Redirect to login
       navigate('/login');
+      
+      // Force reload to clear state
+      window.location.reload();
     }
   };
+
+  // Get user info from localStorage
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = userData.fullName || 'Professor';
 
   return (
     <div className="dashboard">
@@ -20,7 +31,7 @@ function ProfessorDashboard() {
         <div className="header-content">
           <h1>📚 Professor Dashboard</h1>
           <div className="header-actions">
-            <span className="user-name">Welcome, {auth.currentUser?.displayName}</span>
+            <span className="user-name">Welcome, {userName}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
         </div>
