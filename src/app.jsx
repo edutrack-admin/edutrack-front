@@ -2,9 +2,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Auth/login';
-import AdminDashboard from './components/admin/dashboard';
-import StudentDashboard from './components/student/Dashboard';
-import ProfessorDashboard from './components/professor/Dashboard';
+import AdminDashboard from './components/Admin/dashboard';
+import StudentDashboard from './components/Student/Dashboard';
+import ProfessorDashboard from './components/Professor/Dashboard';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
