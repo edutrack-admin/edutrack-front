@@ -34,27 +34,32 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+<Router>
+  <Routes>
+    <Route
+      path="/login"
+      element={
+        authLoading ? null : !user ? <Login /> : <Navigate to="/" replace />
+      }
+    />
 
-        <Route
-          path="/"
-          element={
-            user ? (
-              userType === 'professor' ? <ProfessorDashboard /> :
-              userType === 'student' ? <StudentDashboard /> :
-              userType === 'admin' ? <AdminDashboard /> :
-              <Navigate to="/login" />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+    <Route
+      path="/"
+      element={
+        authLoading ? null : user ? (
+          userType === 'professor' ? <ProfessorDashboard /> :
+          userType === 'student' ? <StudentDashboard /> :
+          userType === 'admin' ? <AdminDashboard /> :
+          <Navigate to="/login" replace />
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      }
+    />
 
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+</Router>
   );
 }
 
