@@ -9,18 +9,15 @@ import AdminDashboard from './components/Admin/dashboard';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [userType, setUserType] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const { data } = await api.get('/auth/me');
-        setUser(data);
-        setUserType(data.role); // admin | professor | student
-      } catch (err) {
+        const res = await api.get('/auth/me');
+        setUser(res.data);
+      } catch {
         setUser(null);
-        setUserType(null);
       } finally {
         setLoading(false);
       }
@@ -34,32 +31,30 @@ function App() {
   }
 
   return (
-<Router>
-  <Routes>
-    <Route
-      path="/login"
-      element={
-        authLoading ? null : !user ? <Login /> : <Navigate to="/" replace />
-      }
-    />
+    <Router>
+      <Routes>
+        <Route
+          path="/login"
+          element={!user ? <Login /> : <Navigate to="/" replace />}
+        />
 
-    <Route
-      path="/"
-      element={
-        authLoading ? null : user ? (
-          userType === 'professor' ? <ProfessorDashboard /> :
-          userType === 'student' ? <StudentDashboard /> :
-          userType === 'admin' ? <AdminDashboard /> :
-          <Navigate to="/login" replace />
-        ) : (
-          <Navigate to="/login" replace />
-        )
-      }
-    />
+        <Route
+          path="/"
+          element={
+            user ? (
+              user.userType === 'professor' ? <ProfessorDashboard /> :
+              user.userType === 'student' ? <StudentDashboard /> :
+              user.userType === 'admin' ? <AdminDashboard /> :
+              <Navigate to="/login" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
 
-    <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>
-</Router>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

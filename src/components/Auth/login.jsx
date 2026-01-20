@@ -28,8 +28,8 @@ function Login() {
       }
 
       // Successful login - navigate to dashboard
-      navigate('/');
-      window.location.reload(); // Refresh to update auth state
+    navigate('/', { replace: true });
+
     } catch (err) {
       console.error('Login error:', err);
       if (err.response?.status === 401) {
