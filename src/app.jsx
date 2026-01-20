@@ -1,60 +1,111 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import api from './services/api';
+// src/App.jsx - Updated with AuthContext
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
+import AdminDashboard from './components/admin/dashboard';
+import StudentDashboard from './components/student/Dashboard';
+import ProfessorDashboard from './components/professor/Dashboard';
 
-import Login from './components/Auth/login';
-import ProfessorDashboard from './components/Professor/Dashboard';
-import StudentDashboard from './components/Student/Dashboard';
-import AdminDashboard from './components/Admin/dashboard';
-
-function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const res = await api.get('/auth/me');
-        setUser(res.data);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
-  }, []);
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '20px'
+      }}>
+        Loading...
+      </div>
+    );
   }
 
+  return user ? children : <Navigate to="/login" replace />;
+}
+
+// Public Route Component (redirects to dashboard if already logged in)
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '20px'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  return user ? <Navigate to="/" replace /> : children;
+}
+
+// Dashboard Router (chooses correct dashboard based on user type)
+function DashboardRouter() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  switch (user.userType) {
+    case 'admin':
+      return <AdminDashboard />;
+    case 'professor':
+      return <ProfessorDashboard />;
+    case 'student':
+      return <StudentDashboard />;
+    default:
+      return <div>Invalid user type</div>;
+  }
+}
+
+// Main App Router
+function AppRoutes() {
   return (
-    <Router>
-      <Routes>
-        <Route
-          path="/login"
-          element={!user ? <Login /> : <Navigate to="/" replace />}
-        />
+    <Routes>
+      {/* Public routes */}
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
 
-        <Route
-          path="/"
-          element={
-            user ? (
-              user.userType === 'professor' ? <ProfessorDashboard /> :
-              user.userType === 'student' ? <StudentDashboard /> :
-              user.userType === 'admin' ? <AdminDashboard /> :
-              <Navigate to="/login" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+      {/* Protected routes */}
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <DashboardRouter />
+          </ProtectedRoute>
+        } 
+      />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+      {/* Catch all - redirect to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+// Main App Component
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -1,7 +1,6 @@
-// dashboard.jsx - Admin Dashboard (Fixed for MongoDB)
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import CreateProfessor from './prof';
 import CreateStudent from './stud';
 import ProfessorList from './profList';
@@ -12,23 +11,14 @@ import './archive.css';
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('createProf');
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
-      // Clear localStorage
-      auth.logout();
-      
-      // Redirect to login
-      navigate('/login');
-      
-      // Force reload to clear state
-      window.location.reload();
+      logout();
+      navigate('/login', { replace: true });
     }
   };
-
-  // Get user info from localStorage
-  const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const userName = userData.fullName || 'Admin';
 
   return (
     <div className="dashboard">
@@ -36,14 +26,13 @@ function AdminDashboard() {
         <div className="header-content">
           <h1>⚙️ Admin Dashboard</h1>
           <div className="header-actions">
-            <span className="user-name">Welcome, {userName}</span>
+            <span className="user-name">Welcome, {user?.fullName || 'Admin'}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
         </div>
       </header>
 
       <div className="container">
-        {/* Navigation Tabs */}
         <div className="tabs">
           <button 
             className={`tab ${activeTab === 'createProf' ? 'active' : ''}`}
@@ -77,7 +66,6 @@ function AdminDashboard() {
           </button>
         </div>
 
-        {/* Tab Content */}
         <div className="tab-content">
           {activeTab === 'createProf' && <CreateProfessor />}
           {activeTab === 'createStud' && <CreateStudent />}

@@ -1,26 +1,17 @@
-// Dashboard.jsx - Student Dashboard (Fixed for MongoDB)
+// Student Dashboard - Using AuthContext
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 function StudentDashboard() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
-      // Clear localStorage
-      auth.logout();
-      
-      // Redirect to login
-      navigate('/login');
-      
-      // Force reload to clear state
-      window.location.reload();
+      logout();
+      navigate('/login', { replace: true });
     }
   };
-
-  // Get user info from localStorage
-  const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const userName = userData.fullName || 'Student';
 
   return (
     <div className="dashboard">
@@ -28,7 +19,7 @@ function StudentDashboard() {
         <div className="header-content">
           <h1>🎓 Student Dashboard</h1>
           <div className="header-actions">
-            <span className="user-name">Welcome, {userName}</span>
+            <span className="user-name">Welcome, {user?.fullName || 'Student'}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
         </div>

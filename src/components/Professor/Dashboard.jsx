@@ -1,29 +1,20 @@
-// Dashboard.jsx - Professor Dashboard (Fixed for MongoDB)
+// Professor Dashboard - Using AuthContext
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './prof.css';
 
 function ProfessorDashboard() {
   const [activeTab, setActiveTab] = useState('mark');
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
-      // Clear localStorage
-      auth.logout();
-      
-      // Redirect to login
-      navigate('/login');
-      
-      // Force reload to clear state
-      window.location.reload();
+      logout();
+      navigate('/login', { replace: true });
     }
   };
-
-  // Get user info from localStorage
-  const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const userName = userData.fullName || 'Professor';
 
   return (
     <div className="dashboard">
@@ -31,14 +22,13 @@ function ProfessorDashboard() {
         <div className="header-content">
           <h1>📚 Professor Dashboard</h1>
           <div className="header-actions">
-            <span className="user-name">Welcome, {userName}</span>
+            <span className="user-name">Welcome, {user?.fullName || 'Professor'}</span>
             <button className="btn-logout" onClick={handleLogout}>Logout</button>
           </div>
         </div>
       </header>
 
       <div className="container">
-        {/* Stats Section */}
         <div className="stats-grid">
           <div className="stat-card">
             <h3>TOTAL CLASSES</h3>
@@ -58,7 +48,6 @@ function ProfessorDashboard() {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
         <div className="tabs">
           <button 
             className={`tab ${activeTab === 'mark' ? 'active' : ''}`}
@@ -92,7 +81,6 @@ function ProfessorDashboard() {
           </button>
         </div>
 
-        {/* Tab Content */}
         <div className="tab-content">
           {activeTab === 'mark' && (
             <div className="card">
@@ -100,28 +88,24 @@ function ProfessorDashboard() {
               <p className="placeholder">Mark Attendance component will be added here...</p>
             </div>
           )}
-
           {activeTab === 'history' && (
             <div className="card">
               <h2>Attendance History</h2>
               <p className="placeholder">History component will be added here...</p>
             </div>
           )}
-
           {activeTab === 'calendar' && (
             <div className="card">
               <h2>Class Schedule</h2>
               <p className="placeholder">Calendar component will be added here...</p>
             </div>
           )}
-
           {activeTab === 'assessments' && (
             <div className="card">
               <h2>Student Assessments</h2>
               <p className="placeholder">Assessments component will be added here...</p>
             </div>
           )}
-
           {activeTab === 'profile' && (
             <div className="card">
               <h2>Profile Settings</h2>
