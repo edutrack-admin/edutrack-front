@@ -110,9 +110,9 @@ function StudentList() {
                   <td>{student.email}</td>
                   <td>
                     <span className="badge badge-success">
-                      {student.classRole === 'president' ? 'President' :
-                       student.classRole === 'vp' ? 'Vice President' :
-                       student.classRole === 'secretary' ? 'Secretary' :
+                      {student.role === 'president' ? 'President' :
+                       student.role === 'vp' ? 'Vice President' :
+                       student.role === 'secretary' ? 'Secretary' :
                        'N/A'}
                     </span>
                   </td>
