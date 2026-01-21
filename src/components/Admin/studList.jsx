@@ -57,7 +57,7 @@ function StudentList() {
         <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
           <p>No students registered yet.</p>
           <p style={{ fontSize: '14px', marginTop: '10px' }}>
-            Students can sign up at the signup page.
+            Students can be created in the "Create Student" tab.
           </p>
         </div>
       ) : (
@@ -75,7 +75,7 @@ function StudentList() {
             </thead>
             <tbody>
               {students.map(student => (
-                <tr key={student.id}>
+                <tr key={student._id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       {student.profilePicture ? (
@@ -130,7 +130,7 @@ function StudentList() {
                   <td>
                     <button
                       className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteStudent(student.id, student.fullName)}
+                      onClick={() => handleDeleteStudent(student._id, student.fullName)}
                     >
                       Delete
                     </button>

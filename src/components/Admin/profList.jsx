@@ -70,7 +70,7 @@ function ProfessorList() {
             </thead>
             <tbody>
               {professors.map(prof => (
-                <tr key={prof.id}>
+                <tr key={prof._id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       {prof.profilePicture ? (
@@ -117,7 +117,7 @@ function ProfessorList() {
                   <td>
                     <button
                       className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteProfessor(prof.id, prof.fullName)}
+                      onClick={() => handleDeleteProfessor(prof._id, prof.fullName)}
                     >
                       Delete
                     </button>
