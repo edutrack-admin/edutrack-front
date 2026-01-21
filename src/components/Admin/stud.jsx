@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { users } from '../../services/api';
+
 function CreateStudent() {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -33,26 +34,27 @@ function CreateStudent() {
     setSuccess('');
     setLoading(true);
 
-   try {
-      await users.createProfessor(formData);
+    try {
+      // ✅ FIXED: Call createStudent instead of createProfessor
+      await users.createStudent(formData);
 
-      setSuccess(`✓ Professor account created successfully! 
+      setSuccess(`✓ Student account created successfully! 
 
 Email: ${formData.email}
 Temporary Password: ${formData.temporaryPassword}
 
-Please provide these credentials to the professor.`);
+Please provide these credentials to the student.`);
       
       // Reset form
       setFormData({
         fullName: '',
         email: '',
-        subject: '',
+        role: 'president',
         temporaryPassword: ''
       });
     } catch (err) {
       console.error('Error:', err);
-      setError(err.response?.data?.message || 'Failed to create professor account');
+      setError(err.response?.data?.message || 'Failed to create student account');
     } finally {
       setLoading(false);
     }
@@ -137,19 +139,6 @@ Please provide these credentials to the professor.`);
           <small style={{ color: '#666', fontSize: '12px' }}>
             Provide this password to the student
           </small>
-        </div>
-
-        <div className="disclaimer-box" style={{
-          background: '#fff3e0',
-          border: '2px solid #ff9800',
-          padding: '15px',
-          borderRadius: '5px',
-          marginBottom: '20px'
-        }}>
-          <strong>⚠️ Important:</strong>
-          <p style={{ marginTop: '5px', fontSize: '14px' }}>
-            You will be asked for your admin password to complete this action. This prevents unauthorized account creation.
-          </p>
         </div>
 
         <button type="submit" className="btn btn-primary" disabled={loading}>
