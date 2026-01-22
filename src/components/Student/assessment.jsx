@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { publicApi } from '../../services/api';
+import { publicApi, assessments } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import './assessment.css';
 
@@ -93,7 +93,7 @@ function AssessmentForm({ onSubmitted }) {
     setMessage('');
 
     // 🚫 Only students can submit assessments
-    if (user?.role !== 'student') {
+    if (user?.userType !== 'student') {
       setMessage('Only students are allowed to submit assessments.');
       return;
     }
