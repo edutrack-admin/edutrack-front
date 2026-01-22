@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -28,6 +28,7 @@ api.interceptors.response.use(
       // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -103,6 +104,11 @@ export const assessments = {
   getByProfessor: async (professorId) => {
     const response = await api.get(`/assessments/professor/${professorId}`);
     return response.data;
+  },
+
+  getByStudent: async () => {
+    const response = await api.get('/assessments/student');
+    return response.data;
   }
 };
 
@@ -140,14 +146,6 @@ export const archive = {
     const params = professorId ? { professorId } : {};
     const response = await api.get('/archive/export/assessments', {
       params,
-      responseType: 'blob'
-    });
-    return response.data;
-  },
-  
-  exportMonthly: async (year, month) => {
-    const response = await api.get('/archive/export/monthly', {
-      params: { year, month },
       responseType: 'blob'
     });
     return response.data;

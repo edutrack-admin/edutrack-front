@@ -9,13 +9,11 @@ function ArchiveManager() {
   const [exporting, setExporting] = useState(false);
   const [message, setMessage] = useState('');
   
-  // Filter states
+  // Filter states - simplified to current month only
   const [filters, setFilters] = useState({
     professorId: '',
-    startDate: '',
-    endDate: '',
-    month: '',
-    year: new Date().getFullYear()
+    startDay: '',
+    endDay: ''
   });
 
   useEffect(() => {
@@ -25,11 +23,12 @@ function ArchiveManager() {
 
   const loadSummary = async () => {
     try {
-    const data = await archive.getSummary();
-    setSummary(data);
-    setLoading(false);
-  } catch (error) {
+      const data = await archive.getSummary();
+      setSummary(data);
+      setLoading(false);
+    } catch (error) {
       console.error('Error loading summary:', error);
+      setMessage('Error loading archive status');
       setLoading(false);
     }
   };
@@ -50,241 +49,119 @@ function ArchiveManager() {
     });
   };
 
-  // Export filtered attendance
-  const handleExportFilteredAttendance = async () => {
+  // Helper to get current month date range
+  const getCurrentMonthDates = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const startDay = filters.startDay || '01';
+    const endDay = filters.endDay || String(new Date(year, now.getMonth() + 1, 0).getDate()).padStart(2, '0');
+    
+    return {
+      startDate: `${year}-${month}-${startDay}`,
+      endDate: `${year}-${month}-${endDay}`
+    };
+  };
+
+  // Export current month attendance with filters
+  const handleExportCurrentMonthAttendance = async () => {
     setExporting(true);
-    setMessage('Exporting filtered attendance records...');
+    setMessage('Exporting current month attendance...');
     
     try {
+      const { startDate, endDate } = getCurrentMonthDates();
+      
       const blob = await archive.exportAttendance(
         filters.professorId || null,
-        filters.startDate || null,
-        filters.endDate || null
+        startDate,
+        endDate
       );
       
-      // Download file
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendance_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
+      downloadFile(blob, `attendance_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
       setMessage('✓ Attendance exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
-      setMessage(`✗ Export failed: ${error.message}`);
+      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
     } finally {
       setExporting(false);
     }
   };
 
-  // Export filtered assessments
-  const handleExportFilteredAssessments = async () => {
+  // Export current month assessments with filters
+  const handleExportCurrentMonthAssessments = async () => {
     setExporting(true);
-    setMessage('Exporting filtered assessment records...');
+    setMessage('Exporting current month assessments...');
     
     try {
       const blob = await archive.exportAssessments(filters.professorId || null);
       
-      // Download file
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `assessments_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
+      downloadFile(blob, `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
       setMessage('✓ Assessments exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
-      setMessage(`✗ Export failed: ${error.message}`);
+      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
     } finally {
       setExporting(false);
     }
   };
 
-  // Export specific month (anytime manual archive)
-  const handleExportSpecificMonth = async () => {
-    if (!filters.month || !filters.year) {
-      setMessage('✗ Please select month and year');
-      return;
-    }
-
+  // Mark current month as archived
+  const handleMarkComplete = async () => {
     const confirmed = confirm(
-      `Export all data for ${filters.month}/${filters.year}?\n\n` +
-      'This will generate a complete report for the selected month.'
-    );
-
-    if (!confirmed) return;
-
-    setExporting(true);
-    setMessage(`Generating report for ${filters.month}/${filters.year}...`);
-    
-    try {
-      const blob = await archive.exportMonthly(
-        parseInt(filters.year),
-        parseInt(filters.month)
-      );
-      
-      // Download file
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `monthly_report_${filters.year}_${String(filters.month).padStart(2, '0')}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      setMessage('✓ Monthly report generated successfully!');
-    } catch (error) {
-      console.error('Export error:', error);
-      setMessage(`✗ Export failed: ${error.message}`);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  // Manual archive current month (before month-end)
-  const handleManualArchiveNow = async () => {
-    const confirmed = confirm(
-      '📦 Manual Archive Current Month\n\n' +
-      'This will:\n' +
-      '1. Export all current month data\n' +
-      '2. Mark as archived\n' +
-      '3. Prepare for cleanup\n\n' +
+      '📦 Mark Current Month as Complete?\n\n' +
+      'Before marking complete, make sure you have:\n' +
+      '✓ Exported all attendance data\n' +
+      '✓ Exported all assessment data\n' +
+      '✓ Backed up all files\n\n' +
+      'Data will be permanently deleted on the 1st-3rd of next month.\n\n' +
       'Continue?'
     );
 
     if (!confirmed) return;
 
-    setExporting(true);
-    setMessage('Archiving current month...');
-
-    try {
-    const now = new Date();
-
-    // Export current month attendance
-    const attendanceBlob = await archive.exportMonthlyAttendance(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-    download(attendanceBlob, `attendance_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    // Export assessments
-    const assessmentBlob = await archive.exportMonthlyAssessments(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-    download(assessmentBlob, `assessments_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    // Generate monthly report
-    const monthlyBlob = await archive.exportMonthly(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-    download(monthlyBlob, `monthly_report_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    // Mark archive complete in DB
-    await archive.markComplete();
-
-    setMessage('✓ Current month archived & marked complete!');
-    loadSummary();
-  } catch (error) {
-    setMessage(`✗ Archive failed: ${error.message}`);
-  }
-
-  setExporting(false);
-};
-
-  // Standard month-end archive
-  const handleExportAllCurrentMonth = async () => {
-    setExporting(true);
-    setMessage('Exporting all current month data...');
+    setLoading(true);
+    setMessage('Marking archive as complete...');
     
     try {
-    const now = new Date();
-    now.setMonth(now.getMonth() - 1);
-
-    // Export attendance (previous month)
-    const attendanceBlob = await archive.exportMonthlyAttendance(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-
-    download(attendanceBlob, `attendance_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    // Export assessments
-    const assessmentBlob = await archive.exportMonthlyAssessments(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-
-    download(assessmentBlob, `assessments_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    // Monthly combined report
-    const monthlyBlob = await archive.exportMonthly(
-      now.getFullYear(),
-      now.getMonth() + 1
-    );
-
-    download(monthlyBlob, `monthly_report_${now.getFullYear()}_${now.getMonth()+1}.xlsx`);
-
-    setMessage('✓ All previous month MongoDB data exported successfully!');
-  } catch (error) {
-    setMessage(`✗ Export failed: ${error.message}`);
-  }
-
-  setExporting(false);
-};
-  const handleMarkComplete = async () => {
-    const confirmed = confirm(
-      'Are you sure you have:\n' +
-      '1. Exported all data to Google Sheets?\n' +
-      '2. Printed/downloaded all necessary reports?\n' +
-      '3. Verified all photos are backed up?\n\n' +
-      'Once marked complete, old data will be permanently deleted on the 1st of next month.'
-    );
-
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      const result = await archive.markComplete();
-      setMessage('✓ Archive marked as complete! Data will be cleaned up automatically.');
+      await archive.markComplete();
+      setMessage('✓ Archive marked complete! Cleanup will run automatically next month.');
       loadSummary();
     } catch (error) {
-      setMessage(`✗ Error: ${error.message}`);
+      console.error('Mark complete error:', error);
+      setMessage(`✗ Error: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  // Manual cleanup trigger (admin override)
   const handleManualCleanup = async () => {
     const confirmed = confirm(
-      '⚠️ WARNING: This will permanently delete:\n' +
-      '- All photos from previous month\n' +
-      '- All attendance records from previous month\n' +
-      '- All assessment records from previous month\n\n' +
-      'Make sure you have backed everything up!\n\n' +
-      'Continue?'
+      '⚠️ WARNING: Manual Cleanup\n\n' +
+      'This will PERMANENTLY DELETE:\n' +
+      '• All attendance records from previous month\n' +
+      '• All assessment records from previous month\n' +
+      '• All associated photos\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
+      'Only proceed if you have:\n' +
+      '✓ Exported and backed up all data\n' +
+      '✓ Verified exports are complete\n' +
+      '✓ Uploaded to external storage\n\n' +
+      'Continue with cleanup?'
     );
 
     if (!confirmed) return;
 
     setLoading(true);
-    setMessage('Executing cleanup...');
+    setMessage('Executing cleanup... This may take a moment...');
+    
     try {
       const result = await archive.executeCleanup();
-      setMessage(`✓ ${result.message}`);
+      setMessage(`✓ ${result.message || 'Cleanup completed successfully!'}`);
       loadSummary();
     } catch (error) {
-      setMessage(`✗ Cleanup failed: ${error.message}`);
+      console.error('Cleanup error:', error);
+      setMessage(`✗ Cleanup failed: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -293,31 +170,33 @@ function ArchiveManager() {
   const clearFilters = () => {
     setFilters({
       professorId: '',
-      startDate: '',
-      endDate: '',
-      month: '',
-      year: new Date().getFullYear()
+      startDay: '',
+      endDay: ''
     });
   };
 
-const download = (blob, filename) => {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
-};
+  const downloadFile = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
 
-  if (loading) {
+  if (loading || !summary) {
     return <div className="loading"><div className="spinner"></div></div>;
   }
 
+  // Get current month/year for display
+  const now = new Date();
+  const currentMonthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
   return (
     <div className="card">
-      <h2>📦 Monthly Archive & Cleanup</h2>
+      <h2>📦 Monthly Archive & Cleanup System</h2>
       
       {message && (
         <div className={message.startsWith('✓') ? 'success-message' : 'error-message'}>
@@ -329,11 +208,7 @@ const download = (blob, filename) => {
       <div className="archive-status">
         <div className="status-row">
           <span className="label">Current Month:</span>
-          <span className="value">{summary.currentMonth}</span>
-        </div>
-        <div className="status-row">
-          <span className="label">Previous Month:</span>
-          <span className="value">{summary.previousMonth}</span>
+          <span className="value">{currentMonthName}</span>
         </div>
         <div className="status-row">
           <span className="label">Days Until Month End:</span>
@@ -341,65 +216,43 @@ const download = (blob, filename) => {
         </div>
         <div className="status-row">
           <span className="label">Archive Status:</span>
-          <span className={`badge ${summary.archiveStatus.completed ? 'badge-success' : 'badge-warning'}`}>
-            {summary.archiveStatus.completed ? '✓ Completed' : '⏳ Pending'}
+          <span className={`badge ${summary.archiveStatus?.completed ? 'badge-success' : 'badge-warning'}`}>
+            {summary.archiveStatus?.completed ? '✓ Completed' : '⏳ Pending'}
           </span>
         </div>
       </div>
 
-      {/* Warning Box */}
-      {summary.shouldShowReminder && !summary.archiveStatus.completed && (
+      {/* Month-End Reminder */}
+      {summary.shouldShowReminder && !summary.archiveStatus?.completed && (
         <div className="warning-box">
-          <h3>⚠️ Month-End Archive Required</h3>
-          <p>You have <strong>{summary.daysUntilMonthEnd} days</strong> remaining to complete the monthly archive.</p>
-          <p>Please export all data and mark as complete before month-end.</p>
+          <h3>⚠️ Month-End Archive Reminder</h3>
+          <p>You have <strong>{summary.daysUntilMonthEnd} days</strong> remaining to complete monthly archiving.</p>
+          <p><strong>Required Actions:</strong></p>
+          <ol>
+            <li>Export all current month data (see sections below)</li>
+            <li>Verify exports are complete</li>
+            <li>Back up files to external storage</li>
+            <li>Mark archive as complete</li>
+          </ol>
         </div>
       )}
 
-      {/* Archive Complete Info */}
-      {summary.archiveStatus.completed && (
+      {/* Archive Complete Status */}
+      {summary.archiveStatus?.completed && (
         <div className="info-box-green">
-          <h3>✓ Archive Completed</h3>
-          <p>Completed by: {summary.archiveStatus.completedByName || 'Admin'}</p>
-          <p>Completed at: {new Date(summary.archiveStatus.completedAt).toLocaleString()}</p>
+          <h3>✓ Current Month Archived</h3>
+          <p><strong>Completed by:</strong> {summary.archiveStatus.completedByName || 'Admin'}</p>
+          <p><strong>Completed at:</strong> {new Date(summary.archiveStatus.completedAt).toLocaleString()}</p>
           {summary.isCleanupWindow && (
-            <p className="warning-text">Data cleanup will execute automatically within 3 days.</p>
+            <p className="warning-text">⚠️ Automatic cleanup window is active (Day 1-3). Data will be deleted soon.</p>
           )}
         </div>
       )}
 
-      {/* SECTION 1: Quick Actions */}
+      {/* SECTION 1: Export Current Month Data */}
       <div className="action-section">
-        <h3>⚡ Quick Actions</h3>
-        <p>Fast export options for standard monthly archiving.</p>
-        
-        <div className="button-group">
-          <button 
-            className="btn btn-primary" 
-            onClick={handleExportAllCurrentMonth}
-            disabled={exporting}
-          >
-            📦 Export All Previous Month Data
-          </button>
-          
-          <button 
-            className="btn btn-success" 
-            onClick={handleManualArchiveNow}
-            disabled={exporting}
-          >
-            🚀 Manual Archive Current Month Now
-          </button>
-        </div>
-        
-        <small style={{ color: '#666', marginTop: '10px', display: 'block' }}>
-          "Export All" exports previous month data. "Manual Archive" archives current month immediately.
-        </small>
-      </div>
-
-      {/* SECTION 2: Filtered Export */}
-      <div className="action-section">
-        <h3>🔍 Filtered Export (Specific Data)</h3>
-        <p>Export specific attendance records or assessments with custom filters.</p>
+        <h3>📊 Export Current Month Data ({currentMonthName})</h3>
+        <p>Export attendance and assessment records from the current month. Use filters to narrow results.</p>
         
         {/* Filters */}
         <div className="filter-grid">
@@ -412,31 +265,39 @@ const download = (blob, filename) => {
             >
               <option value="">All Professors</option>
               {professors.map(prof => (
-                <option key={prof.id} value={prof.id}>
-                  {prof.name} - {prof.subject}
+                <option key={prof._id} value={prof._id}>
+                  {prof.fullName} - {prof.subject}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Start Date</label>
+            <label>From Day (Optional)</label>
             <input
-              type="date"
-              name="startDate"
-              value={filters.startDate}
+              type="number"
+              name="startDay"
+              value={filters.startDay}
               onChange={handleFilterChange}
+              min="1"
+              max="31"
+              placeholder="1"
             />
+            <small style={{ color: '#666', fontSize: '12px' }}>Leave empty for day 1</small>
           </div>
 
           <div className="form-group">
-            <label>End Date</label>
+            <label>To Day (Optional)</label>
             <input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
+              type="number"
+              name="endDay"
+              value={filters.endDay}
               onChange={handleFilterChange}
+              min="1"
+              max="31"
+              placeholder="31"
             />
+            <small style={{ color: '#666', fontSize: '12px' }}>Leave empty for last day</small>
           </div>
 
           <div className="form-group">
@@ -453,99 +314,63 @@ const download = (blob, filename) => {
         <div className="button-group" style={{ marginTop: '15px' }}>
           <button 
             className="btn btn-primary" 
-            onClick={handleExportFilteredAttendance}
+            onClick={handleExportCurrentMonthAttendance}
             disabled={exporting}
           >
-            📄 Export Filtered Attendance
+            📄 Export Attendance
           </button>
           
           <button 
             className="btn btn-primary" 
-            onClick={handleExportFilteredAssessments}
+            onClick={handleExportCurrentMonthAssessments}
             disabled={exporting}
           >
-            📋 Export Filtered Assessments
+            📋 Export Assessments
           </button>
         </div>
+
+        <small style={{ color: '#666', marginTop: '10px', display: 'block' }}>
+          💡 Tip: Export without filters to get all current month data, or use filters for specific reports.
+        </small>
       </div>
 
-      {/* SECTION 3: Specific Month Export */}
-      <div className="action-section">
-        <h3>📅 Export Specific Month</h3>
-        <p>Generate a complete report for any past month.</p>
-        
-        <div className="filter-grid">
-          <div className="form-group">
-            <label>Month</label>
-            <select
-              name="month"
-              value={filters.month}
-              onChange={handleFilterChange}
-            >
-              <option value="">Select Month</option>
-              <option value="1">January</option>
-              <option value="2">February</option>
-              <option value="3">March</option>
-              <option value="4">April</option>
-              <option value="5">May</option>
-              <option value="6">June</option>
-              <option value="7">July</option>
-              <option value="8">August</option>
-              <option value="9">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Year</label>
-            <input
-              type="number"
-              name="year"
-              value={filters.year}
-              onChange={handleFilterChange}
-              min="2020"
-              max={new Date().getFullYear()}
-            />
-          </div>
-
-          <div className="form-group">
-            <button 
-              className="btn btn-primary"
-              onClick={handleExportSpecificMonth}
-              disabled={exporting || !filters.month}
-              style={{ marginTop: '24px' }}
-            >
-              📑 Generate Monthly Report
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 4: Mark Complete (Standard Month-End) */}
-      {!summary.archiveStatus.completed && (
+      {/* SECTION 2: Mark Archive Complete */}
+      {!summary.archiveStatus?.completed && (
         <div className="action-section">
-          <h3>✅ Mark Archive Complete (Standard Month-End Process)</h3>
-          <p>Only mark complete after you have exported and verified all data for previous month.</p>
+          <h3>✅ Mark Current Month as Archived</h3>
+          <p>After exporting and backing up all data, mark the current month as archived.</p>
+          <p className="warning-text">⚠️ Only mark complete after you've exported and verified ALL data!</p>
           
           <button 
             className="btn btn-success" 
             onClick={handleMarkComplete}
             disabled={loading}
           >
-            ✓ Mark Previous Month Archive as Complete
+            ✓ Mark Current Month as Complete
           </button>
+
+          <div style={{ marginTop: '15px', padding: '15px', background: '#fff3e0', borderRadius: '5px' }}>
+            <strong>What happens next?</strong>
+            <ol style={{ marginTop: '10px', paddingLeft: '20px' }}>
+              <li>Archive is marked as complete</li>
+              <li>Data remains accessible for the rest of the month</li>
+              <li>On the 1st-3rd of next month, cleanup runs automatically</li>
+              <li>Old data is permanently deleted</li>
+            </ol>
+          </div>
         </div>
       )}
 
-      {/* SECTION 5: Manual Cleanup (Admin Override) */}
-      {summary.archiveStatus.completed && (
+      {/* SECTION 3: Manual Cleanup (Admin Override) */}
+      {summary.archiveStatus?.completed && (
         <div className="action-section danger-section">
-          <h3>🗑️ Manual Cleanup (Admin Override)</h3>
+          <h3>🗑️ Manual Cleanup (Emergency Override)</h3>
           <p className="warning-text">
-            Only use this if you need to manually trigger the cleanup process.
-            Automatic cleanup will run on Day 1-3 of the new month.
+            ⚠️ <strong>DANGER ZONE:</strong> Only use if automatic cleanup fails or immediate cleanup is required.
+          </p>
+          <p>
+            <strong>Normal behavior:</strong> Automatic cleanup runs on Day 1-3 of each month.<br/>
+            <strong>Use manual cleanup if:</strong> You need immediate cleanup or automatic process failed.
           </p>
           
           <button 
@@ -553,40 +378,45 @@ const download = (blob, filename) => {
             onClick={handleManualCleanup}
             disabled={loading}
           >
-            ⚠️ Execute Cleanup Now
+            ⚠️ Execute Manual Cleanup Now
           </button>
         </div>
       )}
 
       {/* Instructions */}
       <div className="instructions-box">
-        <h4>📖 Archive Process Instructions:</h4>
+        <h4>📖 How the Archive System Works</h4>
         
-        <h5>Standard Month-End Process:</h5>
+        <h5>📅 Monthly Workflow:</h5>
         <ol>
-          <li>Day 25-31: Click "Export All Previous Month Data"</li>
-          <li>Verify data exported successfully to your computer</li>
-          <li>Print/download reports for physical archiving</li>
-          <li>Upload to Google Sheets (external process)</li>
-          <li>Mark archive as complete</li>
-          <li>System automatically deletes old data on Day 1-3 of new month</li>
+          <li><strong>Throughout the month:</strong> System collects attendance and assessment data</li>
+          <li><strong>Day 25-31:</strong> Export all data using the "Export Current Month Data" section</li>
+          <li><strong>After exporting:</strong> Back up files to external storage (Google Drive, etc.)</li>
+          <li><strong>Before month end:</strong> Mark archive as complete</li>
+          <li><strong>Day 1-3 of next month:</strong> Automatic cleanup deletes previous month's data</li>
+          <li><strong>New month begins:</strong> Fresh data collection starts</li>
         </ol>
 
-        <h5>Manual Archive Anytime:</h5>
-        <ol>
-          <li>Click "Manual Archive Current Month Now" at any time</li>
-          <li>System exports all current month data immediately</li>
-          <li>Marks as archived and prepares for cleanup</li>
-          <li>Useful for mid-month reports or early archiving</li>
-        </ol>
+        <h5>💡 Best Practices:</h5>
+        <ul>
+          <li><strong>Export early:</strong> Don't wait until the last day</li>
+          <li><strong>Verify exports:</strong> Open files to ensure data is complete</li>
+          <li><strong>Multiple backups:</strong> Store exports in multiple locations</li>
+          <li><strong>Document storage:</strong> Upload to Google Drive/OneDrive for permanent storage</li>
+          <li><strong>Mark complete only after:</strong> All data is safely backed up</li>
+        </ul>
 
-        <h5>Filtered Export (For Specific Needs):</h5>
-        <ol>
-          <li>Select professor, date range, or both</li>
-          <li>Click "Export Filtered Attendance/Assessments"</li>
-          <li>Useful for individual professor reports or date-specific queries</li>
-          <li>Does not trigger cleanup process</li>
-        </ol>
+        <h5>🔄 Automatic Cleanup:</h5>
+        <p>The system automatically deletes old data on Day 1-3 of each month <strong>ONLY IF</strong> the previous month was marked as complete. This prevents accidental data loss.</p>
+        
+        <h5>🚨 Emergency Manual Cleanup:</h5>
+        <p>Use manual cleanup only if:</p>
+        <ul>
+          <li>Automatic cleanup failed to run</li>
+          <li>Immediate cleanup is required</li>
+          <li>Database storage is critically low</li>
+        </ul>
+        <p className="warning-text">⚠️ Manual cleanup permanently deletes data. Ensure backups exist first!</p>
       </div>
     </div>
   );

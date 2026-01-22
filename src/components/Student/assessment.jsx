@@ -5,6 +5,7 @@ import './assessment.css';
 function AssessmentForm() {
   const [professors, setProfessors] = useState([]);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
+  const [classDateTime, setClassDateTime] = useState('');
   const [ratings, setRatings] = useState({});
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
@@ -114,6 +115,7 @@ function AssessmentForm() {
         studentName: userData.fullName,
         studentEmail: userData.email,
         studentRole: userData.role || 'N/A',
+        classDateTime: classDateTime, 
         ratings: ratings,
         totalScore: totalScore,
         averageRating: parseFloat(averageRating),
@@ -154,24 +156,34 @@ function AssessmentForm() {
           <div className="form-group">
             <label>Name of Faculty being Evaluated</label>
             <select
-              value={selectedProfessor?.id || ''}
-              onChange={(e) => {
-                const prof = professors.find(p => p.id === e.target.value);
+                value={selectedProfessor?._id || ''}
+                onChange={(e) => {
+                const prof = professors.find(p => p._id === e.target.value);
                 setSelectedProfessor(prof);
-              }}
-              required
-            >
-              <option value="">Select Professor</option>
+                }}
+            required
+>
+            <option value="">Select Professor</option>
               {professors.map(prof => (
-                <option key={prof.id} value={prof.id}>
-                  {prof.fullName} - {prof.subject}
+                <option key={prof._id} value={prof._id}>
+                    {prof.fullName} - {prof.subject}
                 </option>
               ))}
-            </select>
+          </select>
+
           </div>
 
           {selectedProfessor && (
             <>
+              <div className="form-group">
+                <label>Date and Time of Class</label>
+                <input
+                  type="datetime-local"
+                    value={classDateTime}
+                  onChange={(e) => setClassDateTime(e.target.value)}
+                  required
+                />
+              </div>
               <div className="form-group">
                 <label>College/Department</label>
                 <input type="text" value="INSTITUTE OF TECHNOLOGY" disabled />
