@@ -67,13 +67,14 @@ function AssessmentForm({ onSubmitted }) {
   }, []);
 
   const loadProfessors = async () => {
-    try {
-      const profList = await assessments.getProfessorsPublic();
-      setProfessors(profList);
-    } catch (error) {
-      console.error('Error loading professors:', error);
-      setMessage('Error loading professors. Please refresh the page.');
-    }
+  try {
+    const profList = await users.getProfessorsPublic();
+    setProfessors(Array.isArray(profList) ? profList : []); // <-- safe coercion
+  } catch (error) {
+    console.error('Error loading professors:', error);
+    setMessage('Error loading professors. Please refresh the page.');
+    setProfessors([]); // fallback
+  }
   };
 
   const handleRatingChange = (questionIndex, value) => {
