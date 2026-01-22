@@ -68,7 +68,7 @@ function AssessmentForm({ onSubmitted }) {
 
   const loadProfessors = async () => {
     try {
-      const profList = await users.getProfessorsPublic();
+      const profList = await assessments.getProfessorsPublic();
       setProfessors(profList);
     } catch (error) {
       console.error('Error loading professors:', error);
