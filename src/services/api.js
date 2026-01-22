@@ -101,13 +101,6 @@ export const assessments = {
     return response.data;
   },
 
-  // New method for students to fetch professors
-  getProfessorsPublic: async () => {
-    const response = await api.get('/users/professors-public');
-    return response.data;
-  },
-
-
   getByProfessor: async (professorId) => {
     const response = await api.get(`/assessments/professor/${professorId}`);
     return response.data;
@@ -155,6 +148,13 @@ export const archive = {
       params,
       responseType: 'blob'
     });
+    return response.data;
+  }
+};
+
+export const publicApi = {
+  getProfessors: async () => {
+    const response = await api.get('/public/professors');
     return response.data;
   }
 };

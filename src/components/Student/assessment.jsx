@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { users, assessments } from '../../services/api';
+import { publicApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import './assessment.css';
 
@@ -68,7 +68,7 @@ function AssessmentForm({ onSubmitted }) {
 
   const loadProfessors = async () => {
   try {
-    const profList = await users.getProfessorsPublic();
+    const profList = await publicApi.getProfessors();
     setProfessors(Array.isArray(profList) ? profList : []); // <-- safe coercion
   } catch (error) {
     console.error('Error loading professors:', error);
