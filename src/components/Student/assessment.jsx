@@ -169,8 +169,7 @@ function AssessmentForm({ onSubmitted }) {
   return (
     <div className="assessment-form">
       <div className="form-header">
-        <h1>PUP Online Survey</h1>
-        <p className="subtitle">Faculty Evaluation 1st Semester of SY 2025-2026</p>
+        <h1>Professor Assessment Form</h1>
       </div>
 
       {message && (
