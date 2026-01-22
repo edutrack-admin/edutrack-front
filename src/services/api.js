@@ -103,9 +103,9 @@ export const assessments = {
 
   // New method for students to fetch professors
   getProfessorsPublic: async () => {
-    return axios.get('/api/users/professors-public').then(res => res.data);
+    return axios.get('/api/user/professors-public').then(res => res.data);
   },
-  
+
   getByProfessor: async (professorId) => {
     const response = await api.get(`/assessments/professor/${professorId}`);
     return response.data;
