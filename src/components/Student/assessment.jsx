@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { users, assessments } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './assessment.css';
 
-function AssessmentForm() {
+function AssessmentForm({ onSubmitted }) {
+  const { user } = useAuth();
+
   const [professors, setProfessors] = useState([]);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [classDateTime, setClassDateTime] = useState('');
@@ -15,7 +18,8 @@ function AssessmentForm() {
   const assessmentSections = [
     {
       section: 'A. Management of Teaching and Learning',
-      description: 'Management of Teaching and Learning refers to the intentional and organized handling of classroom presence, clear communication of academic expectations, efficient use of time, and the purposeful use of student-centered activities that promote critical thinking, independent learning, reflection, decision-making, and continuous academic improvement through constructive feedback.',
+      description:
+        'Management of Teaching and Learning refers to the intentional and organized handling of classroom presence, clear communication of academic expectations, efficient use of time, and the purposeful use of student-centered activities that promote critical thinking, independent learning, reflection, decision-making, and continuous academic improvement through constructive feedback.',
       questions: [
         '1. Comes to class on time.',
         '2. Explains learning outcomes, expectations, grading system, and various requirements of the subject/course.',
@@ -27,7 +31,8 @@ function AssessmentForm() {
     },
     {
       section: 'B. Content Knowledge, Pedagogy and Technology',
-      description: 'Content Knowledge, Pedagogy, and Technology refer to a teacher\'s ability to demonstrate a strong grasp of subject matter, present complex concepts in a clear and accessible way, relate content to real-world contexts and current developments, engage students through appropriate instructional strategies and digital tools, and apply assessment methods aligned with intended learning outcomes.',
+      description:
+        "Content Knowledge, Pedagogy, and Technology refer to a teacher's ability to demonstrate a strong grasp of subject matter, present complex concepts in a clear and accessible way, relate content to real-world contexts and current developments, engage students through appropriate instructional strategies and digital tools, and apply assessment methods aligned with intended learning outcomes.",
       questions: [
         '7. Demonstrates extensive and broad knowledge of the subject/course.',
         '8. Simplifies complex ideas in the lesson for ease of understanding.',
@@ -38,12 +43,13 @@ function AssessmentForm() {
     },
     {
       section: 'C. Commitment and Transparency',
-      description: 'Commitment and Transparency refer to the teacher\'s consistent dedication to supporting student learning by acknowledging learner diversity, offering timely academic support and feedback, and upholding fairness and accountability through the use of clear and openly communicated performance criteria.',
+      description:
+        "Commitment and Transparency refer to the teacher's consistent dedication to supporting student learning by acknowledging learner diversity, offering timely academic support and feedback, and upholding fairness and accountability through the use of clear and openly communicated performance criteria.",
       questions: [
         '12. Recognizes and values the unique diversity and individual differences among students.',
         '13. Assists students with their learning challenges during consultation hours.',
         '14. Provides immediate feedback on student outputs and performance.',
-        '15. Provides transparent and clear criteria in rating student\'s performance.'
+        "15. Provides transparent and clear criteria in rating student's performance."
       ]
     }
   ];
@@ -85,6 +91,12 @@ function AssessmentForm() {
     e.preventDefault();
     setMessage('');
 
+    // 🚫 Only students can submit assessments
+    if (user?.role !== 'student') {
+      setMessage('Only students are allowed to submit assessments.');
+      return;
+    }
+
     // Validate all questions answered
     const totalQuestions = assessmentSections.reduce((sum, section) => sum + section.questions.length, 0);
     if (Object.keys(ratings).length !== totalQuestions) {
@@ -97,36 +109,55 @@ function AssessmentForm() {
       return;
     }
 
+    if (!classDateTime) {
+      setMessage('Please enter the date and time the class was held.');
+      return;
+    }
+
+    if (!user?._id) {
+      setMessage('Session expired. Please login again.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Get current user from localStorage
-      const userData = JSON.parse(localStorage.getItem('user'));
-      
       const totalScore = calculateTotalScore();
       const averageRating = (totalScore / totalQuestions).toFixed(2);
 
       await assessments.create({
-        professor: selectedProfessor._id,
+        // ✅ cleaner naming (recommended)
+        professorId: selectedProfessor._id,
+
+        // optional copies (handy for reports)
         professorName: selectedProfessor.fullName,
         professorEmail: selectedProfessor.email,
         subject: selectedProfessor.subject,
-        student: userData._id,
-        studentName: userData.fullName,
-        studentEmail: userData.email,
-        studentRole: userData.role || 'N/A',
-        classDateTime: classDateTime, 
-        ratings: ratings,
-        totalScore: totalScore,
+
+        studentId: user._id,
+        studentName: user.fullName,
+        studentEmail: user.email,
+        studentRole: user.role || 'N/A',
+
+        // class held datetime
+        classHeldDateTime: classDateTime,
+
+        ratings,
+        totalScore,
         averageRating: parseFloat(averageRating),
-        comments: comments,
+        comments,
         academicYear: 'Faculty Evaluation 1st Semester of SY 2025-2026'
+        // createdAt is automatic on backend (timestamps)
       });
 
       setMessage('✓ Assessment submitted successfully! Thank you for your feedback.');
       setRatings({});
       setComments('');
       setSelectedProfessor(null);
+      setClassDateTime('');
+
+      // refresh dashboard list
+      onSubmitted?.();
     } catch (error) {
       console.error('Error submitting assessment:', error);
       setMessage('✗ Error submitting assessment. Please try again.');
@@ -152,25 +183,24 @@ function AssessmentForm() {
         {/* Section A: Faculty Information */}
         <div className="form-section">
           <h2 className="section-title">A. Faculty Information</h2>
-          
+
           <div className="form-group">
             <label>Name of Faculty being Evaluated</label>
             <select
-                value={selectedProfessor?._id || ''}
-                onChange={(e) => {
+              value={selectedProfessor?._id || ''}
+              onChange={(e) => {
                 const prof = professors.find(p => p._id === e.target.value);
-                setSelectedProfessor(prof);
-                }}
-            required
->
-            <option value="">Select Professor</option>
+                setSelectedProfessor(prof || null);
+              }}
+              required
+            >
+              <option value="">Select Professor</option>
               {professors.map(prof => (
                 <option key={prof._id} value={prof._id}>
-                    {prof.fullName} - {prof.subject}
+                  {prof.fullName} - {prof.subject}
                 </option>
               ))}
-          </select>
-
+            </select>
           </div>
 
           {selectedProfessor && (
@@ -179,11 +209,12 @@ function AssessmentForm() {
                 <label>Date and Time of Class</label>
                 <input
                   type="datetime-local"
-                    value={classDateTime}
+                  value={classDateTime}
                   onChange={(e) => setClassDateTime(e.target.value)}
                   required
                 />
               </div>
+
               <div className="form-group">
                 <label>College/Department</label>
                 <input type="text" value="INSTITUTE OF TECHNOLOGY" disabled />
@@ -205,7 +236,7 @@ function AssessmentForm() {
         {/* Section B: Rating Scale */}
         <div className="form-section rating-scale-section">
           <h2 className="section-title">B. Rating Scale</h2>
-          
+
           <table className="rating-scale-table">
             <thead>
               <tr>
@@ -292,14 +323,19 @@ function AssessmentForm() {
           {/* Note */}
           <div className="note-box">
             <strong>Note</strong>
-            <p>Your feedback is important in enhancing the educational programs of State Universities and Colleges (SUCs). Please be informed that any information provided in this instrument will be treated as strictly confidential.</p>
+            <p>
+              Your feedback is important in enhancing the educational programs of State Universities and Colleges (SUCs).
+              Please be informed that any information provided in this instrument will be treated as strictly confidential.
+            </p>
           </div>
 
           {/* Disclaimer */}
           <div className="disclaimer-box">
             <h3>⚠️ Important Reminder</h3>
             <p><strong>Be honest and fair in your assessments.</strong> False or misleading assessments may result in disciplinary action.</p>
-            <p style={{ fontSize: '14px', marginTop: '10px' }}>All assessment data is archived by administrators at the end of each month for record-keeping purposes.</p>
+            <p style={{ fontSize: '14px', marginTop: '10px' }}>
+              All assessment data is archived by administrators at the end of each month for record-keeping purposes.
+            </p>
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

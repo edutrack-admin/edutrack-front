@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { assessments } from '../../services/api';
 import AssessmentForm from './assessment';
+import dayjs from 'dayjs';
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -71,16 +72,19 @@ function StudentDashboard() {
                   <th>Total Score</th>
                   <th>Average Rating</th>
                   <th>Submitted On</th>
+                  <th>Class Held</th>
+                  <th>Submitted On</th> 
                 </tr>
               </thead>
               <tbody>
                 {studentAssessments.map(a => (
                   <tr key={a._id}>
-                    <td>{a.professorName}</td>
-                    <td>{a.subject}</td>
-                    <td>{a.totalScore}</td>
-                    <td>{a.averageRating}</td>
-                    <td>{new Date(a.createdAt).toLocaleDateString()}</td>
+                    <td>{a.professorName || 'N/A'}</td>
+                    <td>{a.subject || 'N/A'}</td>
+                    <td>{a.totalScore ?? '-'}</td>
+                    <td>{a.averageRating ?? '-'}</td>
+                    <td>{a.dateTime ? dayjs(a.dateTime).format('MMM D, YYYY h:mm A') : '-'}</td>
+                    <td>{a.submittedAt ? dayjs(a.submittedAt).format('MMM D, YYYY h:mm A') : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -91,7 +95,7 @@ function StudentDashboard() {
         {/* Disclaimer */}
         <div className="card" style={{ marginTop: '30px', background: '#fff3e0', border: '2px solid #ff9800' }}>
           <h3>⚠️ Important Reminder</h3>
-          <p>Please provide honest feedback. Misleading information may result in administrative actions.</p>
+          <p>Please provide honest feedback. Misleading information may result in disciplinary actions.</p>
         </div>
       </div>
     </div>
