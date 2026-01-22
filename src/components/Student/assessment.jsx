@@ -127,29 +127,19 @@ function AssessmentForm({ onSubmitted }) {
       const averageRating = (totalScore / totalQuestions).toFixed(2);
 
       await assessments.create({
-        // ✅ cleaner naming (recommended)
         professorId: selectedProfessor._id,
-
-        // optional copies (handy for reports)
         professorName: selectedProfessor.fullName,
         professorEmail: selectedProfessor.email,
         subject: selectedProfessor.subject,
-
-        studentId: user._id,
-        studentName: user.fullName,
-        studentEmail: user.email,
-        studentRole: user.role || 'N/A',
-
-        // class held datetime
-        classHeldDateTime: classDateTime,
-
+        classHeldDateTime: classDateTime, // matches backend field rename
         ratings,
         totalScore,
         averageRating: parseFloat(averageRating),
         comments,
-        academicYear: 'Faculty Evaluation 1st Semester of SY 2025-2026'
-        // createdAt is automatic on backend (timestamps)
+        academicYear: 'Faculty Evaluation 1st Semester of SY 2025-2026',
+        studentRole: user.role // must be 'president', 'vp', or 'secretary'
       });
+
 
       setMessage('✓ Assessment submitted successfully! Thank you for your feedback.');
       setRatings({});
