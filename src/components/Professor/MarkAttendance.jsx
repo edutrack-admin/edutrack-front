@@ -18,6 +18,7 @@ function MarkAttendance() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const startFileInputRef = useRef(null); // Separate ref for start upload button
 
   const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Computer Science', 'English'];
   const sections = ['Section A', 'Section B', 'Section C', 'Section D'];
@@ -122,13 +123,21 @@ function MarkAttendance() {
   const handleFileUpload = (event) => {
     console.log('📁 File upload triggered');
     const file = event.target.files[0];
+    console.log('File object:', file);
+    
     if (file && file.type.startsWith('image/')) {
-      console.log('File selected:', file.name, file.size);
+      console.log('✅ Valid image file selected:', file.name, file.size);
       const imageUrl = URL.createObjectURL(file);
       handlePhotoCapture(imageUrl, file);
     } else {
-      console.log('No valid image file selected');
+      console.log('❌ No valid image file selected');
+      if (file) {
+        alert('Please select an image file (JPG, PNG, etc.)');
+      }
     }
+    
+    // Reset file input so same file can be selected again
+    event.target.value = '';
   };
 
   const handlePhotoCapture = async (imageUrl, imageBlob) => {
@@ -372,7 +381,10 @@ function MarkAttendance() {
                 {loading ? '⏳ Processing...' : '📷 Capture Photo'}
               </button>
               <button 
-                onClick={() => fileInputRef.current?.click()} 
+                onClick={() => {
+                  console.log('📤 Upload button clicked in camera modal');
+                  fileInputRef.current?.click();
+                }} 
                 style={styles.uploadBtn}
                 disabled={loading}
               >
@@ -384,6 +396,10 @@ function MarkAttendance() {
                 accept="image/*"
                 onChange={handleFileUpload}
                 style={{ display: 'none' }}
+                onClick={(e) => {
+                  console.log('📂 File input clicked');
+                  e.stopPropagation();
+                }}
               />
             </div>
           </div>
@@ -516,12 +532,22 @@ function MarkAttendance() {
             <button 
               onClick={() => {
                 console.log('🖱️ Upload button clicked!');
+                console.log('Subject:', selectedSubject, 'Section:', selectedSection);
+                
                 if (!selectedSubject || !selectedSection) {
                   alert('Please select subject and section');
                   return;
                 }
+                
+                console.log('Opening file picker for START photo');
                 setCaptureType('start');
-                fileInputRef.current?.click();
+                
+                // Use the separate file input for start button
+                if (startFileInputRef.current) {
+                  startFileInputRef.current.click();
+                } else {
+                  console.error('Start file input ref is null');
+                }
               }}
               style={{
                 ...styles.startUploadBtn,
@@ -532,6 +558,15 @@ function MarkAttendance() {
             >
               <Upload size={20} /> Start with Upload
             </button>
+            
+            {/* Hidden file input for Start with Upload button */}
+            <input 
+              ref={startFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
           </div>
         </div>
       )}
