@@ -1,9 +1,9 @@
-// Professor Dashboard - Using AuthContext
+// Professor Dashboard - Updated with MarkAttendance Component
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import './prof.css';
 import MarkAttendance from './MarkAttendance';
+import './prof.css';
 
 function ProfessorDashboard() {
   const [activeTab, setActiveTab] = useState('mark');
@@ -51,7 +51,7 @@ function ProfessorDashboard() {
 
         <div className="tabs">
           <button 
-            className={`tab ${activeTab === 'mark' && <MarkAttendance />}`}
+            className={`tab ${activeTab === 'mark' ? 'active' : ''}`}
             onClick={() => setActiveTab('mark')}
           >
             Mark Attendance
@@ -83,12 +83,7 @@ function ProfessorDashboard() {
         </div>
 
         <div className="tab-content">
-          {activeTab === 'mark' && (
-            <div className="card">
-              <h2>Mark Attendance</h2>
-              <p className="placeholder">Mark Attendance component will be added here...</p>
-            </div>
-          )}
+          {activeTab === 'mark' && <MarkAttendance />}
           {activeTab === 'history' && (
             <div className="card">
               <h2>Attendance History</h2>
