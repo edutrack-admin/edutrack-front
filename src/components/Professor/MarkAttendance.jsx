@@ -7,7 +7,7 @@ function MarkAttendance() {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [captureType, setCaptureType] = useState(null); // 'start' or 'end'
+  const [captureType, setCaptureType] = useState(null);
   const [stream, setStream] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
@@ -18,11 +18,11 @@ function MarkAttendance() {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Sample subjects and sections - replace with actual data from your backend
   const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Computer Science', 'English'];
   const sections = ['Section A', 'Section B', 'Section C', 'Section D'];
 
   useEffect(() => {
+    console.log('MarkAttendance component mounted');
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -31,23 +31,33 @@ function MarkAttendance() {
   }, [stream]);
 
   const startCamera = async (type) => {
+    console.log('🎥 startCamera called with type:', type);
+    console.log('Selected Subject:', selectedSubject);
+    console.log('Selected Section:', selectedSection);
+    
     try {
+      console.log('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user' },
         audio: false 
       });
+      console.log('✅ Camera access granted');
+      
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
       setShowCamera(true);
       setCaptureType(type);
+      console.log('Camera modal should now be visible');
     } catch (error) {
+      console.error('❌ Camera error:', error);
       alert('Error accessing camera: ' + error.message);
     }
   };
 
   const stopCamera = () => {
+    console.log('Stopping camera');
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -57,6 +67,7 @@ function MarkAttendance() {
   };
 
   const capturePhoto = () => {
+    console.log('📸 Capturing photo...');
     const canvas = canvasRef.current;
     const video = videoRef.current;
     
@@ -67,25 +78,32 @@ function MarkAttendance() {
       ctx.drawImage(video, 0, 0);
       
       canvas.toBlob((blob) => {
+        console.log('Photo captured, blob size:', blob.size);
         const imageUrl = URL.createObjectURL(blob);
         handlePhotoCapture(imageUrl, blob);
       }, 'image/jpeg', 0.95);
+    } else {
+      console.error('Canvas or video ref is null');
     }
   };
 
   const handleFileUpload = (event) => {
+    console.log('📁 File upload triggered');
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
+      console.log('File selected:', file.name, file.size);
       const imageUrl = URL.createObjectURL(file);
       handlePhotoCapture(imageUrl, file);
+    } else {
+      console.log('No valid image file selected');
     }
   };
 
   const handlePhotoCapture = async (imageUrl, imageBlob) => {
+    console.log('📷 handlePhotoCapture called, type:', captureType);
     const timestamp = new Date();
     
     if (captureType === 'start') {
-      // Validate inputs
       if (!selectedSubject || !selectedSection) {
         alert('Please select subject and section before starting class');
         return;
@@ -93,8 +111,8 @@ function MarkAttendance() {
 
       try {
         setLoading(true);
+        console.log('🚀 Calling backend API - attendance.start');
 
-        // Call backend API
         const result = await attendance.start(
           {
             subject: selectedSubject,
@@ -105,11 +123,12 @@ function MarkAttendance() {
           imageBlob
         );
 
-        // Use server response with local image URL for preview
+        console.log('✅ Backend response:', result);
+
         const newSession = {
           ...result.data,
           id: result.data._id || result.data.id || Date.now(),
-          startImage: imageUrl, // Local URL for immediate preview
+          startImage: imageUrl,
           startImageBlob: imageBlob,
           status: 'ongoing'
         };
@@ -117,15 +136,15 @@ function MarkAttendance() {
         setSessions(prev => [...prev, newSession]);
         setActiveSession(newSession);
         
-        // Reset form
         setSelectedSubject('');
         setSelectedSection('');
         setClassRoom('');
         setNotes('');
 
         stopCamera();
+        console.log('Session created successfully');
       } catch (error) {
-        console.error('Error starting attendance:', error);
+        console.error('❌ Error starting attendance:', error);
         alert('Error starting attendance: ' + (error.message || 'Unknown error'));
       } finally {
         setLoading(false);
@@ -133,17 +152,19 @@ function MarkAttendance() {
     } else if (captureType === 'end' && activeSession) {
       try {
         setLoading(true);
+        console.log('🚀 Calling backend API - attendance.end');
 
-        // Call backend API
         const result = await attendance.end(
           activeSession._id || activeSession.id,
           imageBlob
         );
 
+        console.log('✅ Backend response:', result);
+
         const updatedSession = {
           ...result.data,
           id: result.data._id || result.data.id,
-          endImage: imageUrl, // Local URL for immediate preview
+          endImage: imageUrl,
           status: 'completed'
         };
         
@@ -157,8 +178,9 @@ function MarkAttendance() {
         setActiveSession(null);
 
         stopCamera();
+        console.log('Session ended successfully');
       } catch (error) {
-        console.error('Error ending attendance:', error);
+        console.error('❌ Error ending attendance:', error);
         alert('Error ending attendance: ' + (error.message || 'Unknown error'));
       } finally {
         setLoading(false);
@@ -189,17 +211,9 @@ function MarkAttendance() {
     });
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   const getCurrentDuration = () => {
     if (!activeSession) return 0;
-    return Math.floor((new Date() - activeSession.startTime) / 1000);
+    return Math.floor((new Date() - new Date(activeSession.startTime)) / 1000);
   };
 
   const [currentDuration, setCurrentDuration] = useState(0);
@@ -213,20 +227,15 @@ function MarkAttendance() {
     }
   }, [activeSession]);
 
-  const saveAttendance = async (session) => {
-    // Session is already saved in backend when end photo is captured
-    // This function can be used for additional actions or re-confirmation
-    alert('Attendance already saved to database!');
-    console.log('Saved session:', session);
-  };
-
   // Load today's sessions on mount
   useEffect(() => {
     const loadTodaySessions = async () => {
       try {
+        console.log('📥 Loading today\'s sessions...');
         const result = await attendance.getToday();
+        console.log('Today\'s sessions result:', result);
+        
         if (result.success && result.data) {
-          // Transform backend data to match local state structure
           const transformedSessions = result.data.map(s => ({
             ...s,
             id: s._id,
@@ -235,23 +244,59 @@ function MarkAttendance() {
           }));
           setSessions(transformedSessions);
           
-          // Check if there's an ongoing session
           const ongoing = transformedSessions.find(s => s.status === 'ongoing');
           if (ongoing) {
             setActiveSession(ongoing);
+            console.log('Found ongoing session:', ongoing);
           }
         }
       } catch (error) {
-        console.error('Error loading today\'s sessions:', error);
+        console.error('❌ Error loading today\'s sessions:', error);
       }
     };
 
     loadTodaySessions();
   }, []);
 
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('State update - selectedSubject:', selectedSubject);
+  }, [selectedSubject]);
+
+  useEffect(() => {
+    console.log('State update - selectedSection:', selectedSection);
+  }, [selectedSection]);
+
+  useEffect(() => {
+    console.log('State update - loading:', loading);
+  }, [loading]);
+
+  const handleCameraButtonClick = () => {
+    console.log('🖱️ Camera button clicked!');
+    console.log('Current state:');
+    console.log('  - selectedSubject:', selectedSubject);
+    console.log('  - selectedSection:', selectedSection);
+    console.log('  - loading:', loading);
+    console.log('  - Button disabled?', !selectedSubject || !selectedSection || loading);
+    
+    if (!selectedSubject || !selectedSection) {
+      alert('Please select both subject and section first!');
+      return;
+    }
+    
+    startCamera('start');
+  };
+
   return (
     <div style={styles.container}>
-      {/* Camera Modal */}
+      <div style={{ padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '20px', borderRadius: '8px' }}>
+        <strong>Debug Info:</strong>
+        <div>Selected Subject: {selectedSubject || 'None'}</div>
+        <div>Selected Section: {selectedSection || 'None'}</div>
+        <div>Loading: {loading ? 'Yes' : 'No'}</div>
+        <div>Button Enabled: {selectedSubject && selectedSection && !loading ? 'Yes' : 'No'}</div>
+      </div>
+
       {showCamera && (
         <div style={styles.cameraModal}>
           <div style={styles.cameraContainer}>
@@ -297,7 +342,6 @@ function MarkAttendance() {
         </div>
       )}
 
-      {/* Active Session Timer */}
       {activeSession && (
         <div style={styles.activeSessionCard}>
           <div style={styles.sessionHeader}>
@@ -335,7 +379,10 @@ function MarkAttendance() {
               <Camera size={20} /> End Class
             </button>
             <button 
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                setCaptureType('end');
+                fileInputRef.current?.click();
+              }}
               style={styles.uploadEndBtn}
             >
               <Upload size={20} /> Upload Photo
@@ -344,7 +391,6 @@ function MarkAttendance() {
         </div>
       )}
 
-      {/* Start New Class Form */}
       {!activeSession && (
         <div style={styles.startClassCard}>
           <h2 style={styles.cardTitle}>Start New Class</h2>
@@ -354,7 +400,10 @@ function MarkAttendance() {
               <label style={styles.label}>Subject *</label>
               <select 
                 value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
+                onChange={(e) => {
+                  console.log('Subject changed to:', e.target.value);
+                  setSelectedSubject(e.target.value);
+                }}
                 style={styles.select}
               >
                 <option value="">Select Subject</option>
@@ -368,7 +417,10 @@ function MarkAttendance() {
               <label style={styles.label}>Section *</label>
               <select 
                 value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
+                onChange={(e) => {
+                  console.log('Section changed to:', e.target.value);
+                  setSelectedSection(e.target.value);
+                }}
                 style={styles.select}
               >
                 <option value="">Select Section</option>
@@ -403,14 +455,19 @@ function MarkAttendance() {
 
           <div style={styles.startActions}>
             <button 
-              onClick={() => startCamera('start')}
-              style={styles.startCameraBtn}
+              onClick={handleCameraButtonClick}
+              style={{
+                ...styles.startCameraBtn,
+                opacity: (!selectedSubject || !selectedSection || loading) ? 0.5 : 1,
+                cursor: (!selectedSubject || !selectedSection || loading) ? 'not-allowed' : 'pointer'
+              }}
               disabled={!selectedSubject || !selectedSection || loading}
             >
               <Camera size={20} /> {loading ? 'Starting...' : 'Start with Camera'}
             </button>
             <button 
               onClick={() => {
+                console.log('🖱️ Upload button clicked!');
                 if (!selectedSubject || !selectedSection) {
                   alert('Please select subject and section');
                   return;
@@ -418,7 +475,11 @@ function MarkAttendance() {
                 setCaptureType('start');
                 fileInputRef.current?.click();
               }}
-              style={styles.startUploadBtn}
+              style={{
+                ...styles.startUploadBtn,
+                opacity: (!selectedSubject || !selectedSection || loading) ? 0.5 : 1,
+                cursor: (!selectedSubject || !selectedSection || loading) ? 'not-allowed' : 'pointer'
+              }}
               disabled={!selectedSubject || !selectedSection || loading}
             >
               <Upload size={20} /> Start with Upload
@@ -427,7 +488,6 @@ function MarkAttendance() {
         </div>
       )}
 
-      {/* Recent Sessions */}
       <div style={styles.sessionsCard}>
         <h2 style={styles.cardTitle}>Today's Sessions</h2>
         
@@ -730,7 +790,6 @@ const styles = {
     borderRadius: '8px',
     fontSize: '16px',
     fontWeight: '600',
-    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -747,7 +806,6 @@ const styles = {
     borderRadius: '8px',
     fontSize: '16px',
     fontWeight: '600',
-    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -842,17 +900,6 @@ const styles = {
     marginBottom: '15px',
     fontSize: '14px',
     color: '#5b21b6'
-  },
-  saveBtn: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer'
   },
   savedBadge: {
     backgroundColor: '#d1fae5',
