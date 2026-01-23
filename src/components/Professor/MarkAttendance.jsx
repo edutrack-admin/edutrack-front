@@ -4,6 +4,7 @@ import { attendance } from '../../services/api';
 
 function MarkAttendance() {
   const [loading, setLoading] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -30,29 +31,59 @@ function MarkAttendance() {
     };
   }, [stream]);
 
+  // Attach stream to video when both are ready
+  useEffect(() => {
+    if (stream && videoRef.current && showCamera) {
+      console.log('🎬 Attaching stream to video via useEffect');
+      const video = videoRef.current;
+      video.srcObject = stream;
+      
+      video.onloadedmetadata = () => {
+        console.log('📹 Video metadata loaded via useEffect');
+        video.play()
+          .then(() => {
+            console.log('✅ Video is now playing');
+            setCameraLoading(false);
+          })
+          .catch(err => {
+            console.error('❌ Play error:', err);
+            setCameraLoading(false);
+          });
+      };
+    }
+  }, [stream, showCamera]);
+
   const startCamera = async (type) => {
     console.log('🎥 startCamera called with type:', type);
     console.log('Selected Subject:', selectedSubject);
     console.log('Selected Section:', selectedSection);
     
+    setCameraLoading(true);
+    setShowCamera(true);
+    setCaptureType(type);
+    
     try {
       console.log('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' },
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false 
       });
       console.log('✅ Camera access granted');
+      console.log('Stream active:', mediaStream.active);
+      console.log('Video tracks:', mediaStream.getVideoTracks().length);
       
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      setShowCamera(true);
-      setCaptureType(type);
-      console.log('Camera modal should now be visible');
+      
+      console.log('Camera modal visible, stream set');
     } catch (error) {
       console.error('❌ Camera error:', error);
       alert('Error accessing camera: ' + error.message);
+      setCameraLoading(false);
+      setShowCamera(false);
     }
   };
 
@@ -64,6 +95,7 @@ function MarkAttendance() {
     }
     setShowCamera(false);
     setCaptureType(null);
+    setCameraLoading(false);
   };
 
   const capturePhoto = () => {
@@ -289,6 +321,13 @@ function MarkAttendance() {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       <div style={{ padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '20px', borderRadius: '8px' }}>
         <strong>Debug Info:</strong>
         <div>Selected Subject: {selectedSubject || 'None'}</div>
@@ -311,8 +350,17 @@ function MarkAttendance() {
               ref={videoRef} 
               autoPlay 
               playsInline
+              muted
               style={styles.video}
             />
+            
+            {cameraLoading && (
+              <div style={styles.cameraLoading}>
+                <div style={styles.spinner}></div>
+                <p>Loading camera...</p>
+              </div>
+            )}
+            
             <canvas ref={canvasRef} style={{ display: 'none' }} />
             
             <div style={styles.cameraActions}>
@@ -577,7 +625,8 @@ const styles = {
     borderRadius: '15px',
     padding: '20px',
     maxWidth: '600px',
-    width: '100%'
+    width: '100%',
+    position: 'relative'
   },
   cameraHeader: {
     display: 'flex',
@@ -593,9 +642,30 @@ const styles = {
   },
   video: {
     width: '100%',
+    height: 'auto',
+    minHeight: '300px',
     borderRadius: '10px',
     marginBottom: '15px',
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    objectFit: 'cover'
+  },
+  cameraLoading: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    textAlign: 'center',
+    color: 'white',
+    zIndex: 10
+  },
+  spinner: {
+    border: '4px solid rgba(255, 255, 255, 0.3)',
+    borderTop: '4px solid white',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 10px'
   },
   cameraActions: {
     display: 'flex',
