@@ -112,6 +112,105 @@ export const assessments = {
   }
 };
 
+// Attendance (NEW)
+export const attendance = {
+  // Start attendance session with image
+  start: async (data, imageBlob) => {
+    const formData = new FormData();
+    formData.append('subject', data.subject);
+    formData.append('section', data.section);
+    if (data.classRoom) formData.append('classRoom', data.classRoom);
+    if (data.notes) formData.append('notes', data.notes);
+    formData.append('image', imageBlob, 'start-image.jpg');
+
+    const response = await api.post('/attendance/start', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // End attendance session with image
+  end: async (attendanceId, imageBlob) => {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'end-image.jpg');
+
+    const response = await api.post(`/attendance/end/${attendanceId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Get today's attendance sessions
+  getToday: async () => {
+    const response = await api.get('/attendance/today');
+    return response.data;
+  },
+
+  // Get attendance history with filters
+  getHistory: async (filters = {}) => {
+    const response = await api.get('/attendance/history', {
+      params: filters
+    });
+    return response.data;
+  },
+
+  // Get attendance statistics
+  getStats: async () => {
+    const response = await api.get('/attendance/stats');
+    return response.data;
+  },
+
+  // Delete attendance session
+  delete: async (attendanceId) => {
+    const response = await api.delete(`/attendance/${attendanceId}`);
+    return response.data;
+  },
+
+  // Export attendance to CSV
+  exportCSV: async (filters = {}) => {
+    const response = await api.get('/attendance/export/csv', {
+      params: filters,
+      responseType: 'blob'
+    });
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `attendance-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  },
+
+  // Export attendance to PDF
+  exportPDF: async (filters = {}) => {
+    const response = await api.get('/attendance/export/pdf', {
+      params: filters,
+      responseType: 'blob'
+    });
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `attendance-${new Date().toISOString().split('T')[0]}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  }
+};
+
 // Archive (Admin only)
 export const archive = {
   getSummary: async () => {

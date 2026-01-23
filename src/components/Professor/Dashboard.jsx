@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './prof.css';
+import MarkAttendance from './MarkAttendance';
 
 function ProfessorDashboard() {
   const [activeTab, setActiveTab] = useState('mark');
@@ -50,7 +51,7 @@ function ProfessorDashboard() {
 
         <div className="tabs">
           <button 
-            className={`tab ${activeTab === 'mark' ? 'active' : ''}`}
+            className={`tab ${activeTab === 'mark' && <MarkAttendance />}`}
             onClick={() => setActiveTab('mark')}
           >
             Mark Attendance
