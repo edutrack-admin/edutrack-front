@@ -76,11 +76,40 @@ function ArchiveManager() {
 
       setMessage('✓ Attendance exported successfully!');
     } catch (error) {
-      console.error('Export error:', error);
-      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setExporting(false);
+  console.error('Export error:', error);
+
+  // ✅ If backend responds with JSON but axios expects Blob,
+  // error.response.data will be a Blob → we must decode it
+  if (error.response?.data instanceof Blob) {
+    try {
+      const text = await error.response.data.text();
+
+      // try parse as JSON
+      const json = JSON.parse(text);
+
+      setMessage(
+        `✗ Export failed: ${json.error || json.message || 'Unknown error'}`
+      );
+      return;
+    } catch (e) {
+      // If it's not JSON, fallback to showing raw text
+      try {
+        const text = await error.response.data.text();
+        setMessage(`✗ Export failed: ${text}`);
+        return;
+      } catch {
+        // ignore
+      }
     }
+  }
+
+  // fallback for normal axios JSON responses
+  setMessage(
+    `✗ Export failed: ${error.response?.data?.message || error.message}`
+  );
+} finally {
+  setExporting(false);
+}
   };
 
   // Export current month assessments with filters
