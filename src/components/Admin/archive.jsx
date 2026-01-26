@@ -70,12 +70,8 @@ const handleExportCurrentMonthAttendance = async () => {
   try {
     const { startDate, endDate } = getCurrentMonthDates();
 
-    const response = await archive.exportAttendance(
-      filters.professorId || null,
-      startDate,
-      endDate
-    );
-
+    const response = await archive.exportAttendance(startDate, endDate);
+    
     downloadFile(
       response,
       `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`
