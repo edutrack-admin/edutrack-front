@@ -241,14 +241,19 @@ export const archive = {
     return response;
   },
   
-  exportAssessments: async (professorId = null) => {
-    const params = professorId ? { professorId } : {};
-    const response = await api.get('/archive/export/assessments', {
-      params,
-      responseType: 'blob'
-    });
-    return response;
-  }
+exportAssessments: async (professorId = null, startDate = null, endDate = null) => {
+  const params = {};
+  if (professorId) params.professorId = professorId;
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+
+  const response = await api.get('/archive/export/assessments', {
+    params,
+    responseType: 'blob'
+  });
+
+  return response;
+}
 };
 
 export const publicApi = {

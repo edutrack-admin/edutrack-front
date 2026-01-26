@@ -63,77 +63,94 @@ function ArchiveManager() {
     };
   };
 
-  // Export current month attendance with filters
-  const handleExportCurrentMonthAttendance = async () => {
-    setExporting(true);
-    setMessage('Exporting current month attendance...');
-    
-    try {
-      const { startDate, endDate } = getCurrentMonthDates();
-      
-      const response = await archive.exportAssessments(filters.professorId || null);
-      downloadFile(response, `atten_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
+const handleExportCurrentMonthAttendance = async () => {
+  setExporting(true);
+  setMessage('Exporting current month attendance...');
 
-      setMessage('✓ Attendance exported successfully!');
-    } catch (error) {
-  console.error('Export error:', error);
+  try {
+    const { startDate, endDate } = getCurrentMonthDates();
 
-  // ✅ If backend responds with JSON but axios expects Blob,
-  // error.response.data will be a Blob → we must decode it
-  if (error.response?.data instanceof Blob) {
-    try {
-      const text = await error.response.data.text();
-
-      // try parse as JSON
-      const json = JSON.parse(text);
-
-      setMessage(
-        `✗ Export failed: ${json.error || json.message || 'Unknown error'}`
-      );
-      return;
-    } catch (e) {
-      // If it's not JSON, fallback to showing raw text
-      try {
-        const text = await error.response.data.text();
-        setMessage(`✗ Export failed: ${text}`);
-        return;
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  // fallback for normal axios JSON responses
-  setMessage(
-    `✗ Export failed: ${error.response?.data?.message || error.message}`
-  );
-} finally {
-  setExporting(false);
-}
-  };
-
-  // Export current month assessments with filters
-  const handleExportCurrentMonthAssessments = async () => {
-    setExporting(true);
-    setMessage('Exporting current month assessments...');
-
-    try {
-      const { startDate, endDate } = getCurrentMonthDates();
-      const response = await archive.exportAttendance(
+    const response = await archive.exportAttendance(
       filters.professorId || null,
       startDate,
       endDate
     );
-  // now backend returns ZIP (per professor) instead of XLSX
-    downloadFile(response, `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`);
-      setMessage('✓ Assessments exported successfully!');
-    } catch (error) {
-      console.error('Export error:', error);
-      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setExporting(false);
+
+    downloadFile(
+      response,
+      `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`
+    );
+
+    setMessage('✓ Attendance exported successfully!');
+  } catch (error) {
+    console.error('Export error:', error);
+
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const json = JSON.parse(text);
+        setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
+        return;
+      } catch {
+        try {
+          const text = await error.response.data.text();
+          setMessage(`✗ Export failed: ${text}`);
+          return;
+        } catch {}
+      }
     }
-  };
+
+    setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
+  } finally {
+    setExporting(false);
+  }
+};
+
+
+const handleExportCurrentMonthAssessments = async () => {
+  setExporting(true);
+  setMessage('Exporting current month assessments...');
+
+  try {
+    const { startDate, endDate } = getCurrentMonthDates();
+
+    // If your backend exportAssessments supports date filtering:
+    // const response = await archive.exportAssessments(filters.professorId || null, startDate, endDate);
+
+    // If your backend exportAssessments ONLY supports professorId for now:
+    const response = await archive.exportAssessments(filters.professorId || null);
+
+    downloadFile(
+      response,
+      `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+
+    setMessage('✓ Assessments exported successfully!');
+  } catch (error) {
+    console.error('Export error:', error);
+
+    // ✅ decode backend JSON error if axios expects blob
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const json = JSON.parse(text);
+
+        setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
+        return;
+      } catch {
+        try {
+          const text = await error.response.data.text();
+          setMessage(`✗ Export failed: ${text}`);
+          return;
+        } catch {}
+      }
+    }
+
+    setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
+  } finally {
+    setExporting(false);
+  }
+};
 
   // Mark current month as archived
   const handleMarkComplete = async () => {
