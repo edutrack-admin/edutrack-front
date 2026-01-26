@@ -72,7 +72,7 @@ function ArchiveManager() {
       const { startDate, endDate } = getCurrentMonthDates();
       
       const response = await archive.exportAssessments(filters.professorId || null);
-      downloadFile(response, `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
+      downloadFile(response, `atten_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
 
       setMessage('✓ Attendance exported successfully!');
     } catch (error) {
@@ -116,8 +116,9 @@ function ArchiveManager() {
   const handleExportCurrentMonthAssessments = async () => {
     setExporting(true);
     setMessage('Exporting current month assessments...');
-    
+
     try {
+      const { startDate, endDate } = getCurrentMonthDates();
       const response = await archive.exportAttendance(
       filters.professorId || null,
       startDate,
