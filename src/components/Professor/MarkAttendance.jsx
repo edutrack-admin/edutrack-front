@@ -253,9 +253,17 @@ function MarkAttendance() {
   };
 
   const getCurrentDuration = () => {
-    if (!activeSession) return 0;
-    return Math.floor((new Date() - new Date(activeSession.startTime)) / 1000);
-  };
+  if (!activeSession) return 0;
+
+  // If backend already finalized duration, trust it
+  if (activeSession.duration != null) {
+    return activeSession.duration;
+  }
+
+  // UI-only estimate while session is ongoing
+  return Math.floor((Date.now() - new Date(activeSession.startTime).getTime()) / 1000);
+};
+
 
   const [currentDuration, setCurrentDuration] = useState(0);
 

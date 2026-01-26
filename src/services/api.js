@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -238,7 +238,7 @@ export const archive = {
       params,
       responseType: 'blob'
     });
-    return response.data;
+    return response;
   },
   
   exportAssessments: async (professorId = null) => {
@@ -247,7 +247,7 @@ export const archive = {
       params,
       responseType: 'blob'
     });
-    return response.data;
+    return response;
   }
 };
 

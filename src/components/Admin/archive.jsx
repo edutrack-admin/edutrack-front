@@ -71,13 +71,9 @@ function ArchiveManager() {
     try {
       const { startDate, endDate } = getCurrentMonthDates();
       
-      const blob = await archive.exportAttendance(
-        filters.professorId || null,
-        startDate,
-        endDate
-      );
-      
-      downloadFile(blob, `attendance_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const response = await archive.exportAssessments(filters.professorId || null);
+      downloadFile(response, `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
+
       setMessage('✓ Attendance exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
@@ -93,9 +89,13 @@ function ArchiveManager() {
     setMessage('Exporting current month assessments...');
     
     try {
-      const blob = await archive.exportAssessments(filters.professorId || null);
-      
-      downloadFile(blob, `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const response = await archive.exportAttendance(
+      filters.professorId || null,
+      startDate,
+      endDate
+    );
+  // now backend returns ZIP (per professor) instead of XLSX
+    downloadFile(response, `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`);
       setMessage('✓ Assessments exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
@@ -175,16 +175,33 @@ function ArchiveManager() {
     });
   };
 
-  const downloadFile = (blob, filename) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
+  const getFilenameFromResponse = (response, fallbackName) => {
+  const disposition = response?.headers?.['content-disposition'];
+  if (!disposition) return fallbackName;
+
+  // Example: attachment; filename=attendance_2026-01-26.zip
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  return match?.[1] || fallbackName;
+};
+
+  const downloadFile = (responseOrBlob, fallbackFilename) => {
+  const blob = responseOrBlob?.data instanceof Blob ? responseOrBlob.data : responseOrBlob;
+
+  const filename =
+    responseOrBlob?.headers
+      ? getFilenameFromResponse(responseOrBlob, fallbackFilename)
+      : fallbackFilename;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
 
   if (loading || !summary) {
     return <div className="loading"><div className="spinner"></div></div>;
