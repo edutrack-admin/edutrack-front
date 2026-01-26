@@ -85,10 +85,12 @@ const handleExportCurrentMonthAttendance = async () => {
   } catch (error) {
     console.error('Export error:', error);
 
+    // ✅ decode backend JSON error if axios expects blob
     if (error.response?.data instanceof Blob) {
       try {
         const text = await error.response.data.text();
         const json = JSON.parse(text);
+
         setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
         return;
       } catch {
