@@ -238,16 +238,20 @@ export const archive = {
       params,
       responseType: 'blob'
     });
-    return response.data;
+    return response;
   },
   
-  exportAssessments: async (professorId = null) => {
-    const params = professorId ? { professorId } : {};
+    exportAssessments: async (professorId = null, startDate = null, endDate = null) => {
+    const params = {};
+    if (professorId) params.professorId = professorId;
+    if (startDate) params.startDate = startDate; // ← Added
+    if (endDate) params.endDate = endDate;       // ← Added
+    
     const response = await api.get('/archive/export/assessments', {
       params,
       responseType: 'blob'
     });
-    return response.data;
+    return response; // ← Changed from response.data to response
   }
 };
 
