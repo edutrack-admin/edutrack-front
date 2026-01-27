@@ -8,6 +8,8 @@ function ArchiveManager() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [message, setMessage] = useState('');
+  const [showClearAll, setShowClearAll] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
   
   // Filter states - simplified to current month only
   const [filters, setFilters] = useState({
@@ -63,92 +65,81 @@ function ArchiveManager() {
     };
   };
 
-const handleExportCurrentMonthAttendance = async () => {
-  setExporting(true);
-  setMessage('Exporting current month attendance...');
+  const handleExportCurrentMonthAttendance = async () => {
+    setExporting(true);
+    setMessage('Exporting current month attendance...');
 
-  try {
-    const { startDate, endDate } = getCurrentMonthDates();
+    try {
+      const { startDate, endDate } = getCurrentMonthDates();
+      const response = await archive.exportAttendance(filters.professorId || null, startDate, endDate);
+      
+      downloadFile(
+        response,
+        `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`
+      );
 
-    const response = await archive.exportAttendance(startDate, endDate);
-    
-    downloadFile(
-      response,
-      `attendance_current_month_${new Date().toISOString().split('T')[0]}.zip`
-    );
+      setMessage('✓ Attendance exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
 
-    setMessage('✓ Attendance exported successfully!');
-  } catch (error) {
-    console.error('Export error:', error);
-
-    // ✅ decode backend JSON error if axios expects blob
-    if (error.response?.data instanceof Blob) {
-      try {
-        const text = await error.response.data.text();
-        const json = JSON.parse(text);
-
-        setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
-        return;
-      } catch {
+      if (error.response?.data instanceof Blob) {
         try {
           const text = await error.response.data.text();
-          setMessage(`✗ Export failed: ${text}`);
+          const json = JSON.parse(text);
+          setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
           return;
-        } catch {}
+        } catch {
+          try {
+            const text = await error.response.data.text();
+            setMessage(`✗ Export failed: ${text}`);
+            return;
+          } catch {}
+        }
       }
+
+      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setExporting(false);
     }
+  };
 
-    setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
-  } finally {
-    setExporting(false);
-  }
-};
+  const handleExportCurrentMonthAssessments = async () => {
+    setExporting(true);
+    setMessage('Exporting current month assessments...');
 
+    try {
+      const { startDate, endDate } = getCurrentMonthDates();
+      const response = await archive.exportAssessments(filters.professorId || null, startDate, endDate);
 
-const handleExportCurrentMonthAssessments = async () => {
-  setExporting(true);
-  setMessage('Exporting current month assessments...');
+      downloadFile(
+        response,
+        `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
 
-  try {
-    const { startDate, endDate } = getCurrentMonthDates();
+      setMessage('✓ Assessments exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
 
-    // If your backend exportAssessments supports date filtering:
-    // const response = await archive.exportAssessments(filters.professorId || null, startDate, endDate);
-
-    // If your backend exportAssessments ONLY supports professorId for now:
-    const response = await archive.exportAssessments(filters.professorId || null);
-
-    downloadFile(
-      response,
-      `assessments_current_month_${new Date().toISOString().split('T')[0]}.xlsx`
-    );
-
-    setMessage('✓ Assessments exported successfully!');
-  } catch (error) {
-    console.error('Export error:', error);
-
-    // ✅ decode backend JSON error if axios expects blob
-    if (error.response?.data instanceof Blob) {
-      try {
-        const text = await error.response.data.text();
-        const json = JSON.parse(text);
-
-        setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
-        return;
-      } catch {
+      if (error.response?.data instanceof Blob) {
         try {
           const text = await error.response.data.text();
-          setMessage(`✗ Export failed: ${text}`);
+          const json = JSON.parse(text);
+          setMessage(`✗ Export failed: ${json.error || json.message || 'Unknown error'}`);
           return;
-        } catch {}
+        } catch {
+          try {
+            const text = await error.response.data.text();
+            setMessage(`✗ Export failed: ${text}`);
+            return;
+          } catch {}
+        }
       }
-    }
 
-    setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
-  } finally {
-    setExporting(false);
-  }
-};
+      setMessage(`✗ Export failed: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Mark current month as archived
   const handleMarkComplete = async () => {
@@ -158,7 +149,7 @@ const handleExportCurrentMonthAssessments = async () => {
       '✓ Exported all attendance data\n' +
       '✓ Exported all assessment data\n' +
       '✓ Backed up all files\n\n' +
-      'Data will be permanently deleted on the 1st-3rd of next month.\n\n' +
+      'Data will be automatically deleted on the 1st-3rd of next month.\n\n' +
       'Continue?'
     );
 
@@ -169,7 +160,7 @@ const handleExportCurrentMonthAssessments = async () => {
     
     try {
       await archive.markComplete();
-      setMessage('✓ Archive marked complete! Cleanup will run automatically next month.');
+      setMessage('✓ Archive marked complete! Automatic cleanup will run on Day 1-3 of next month.');
       loadSummary();
     } catch (error) {
       console.error('Mark complete error:', error);
@@ -186,7 +177,7 @@ const handleExportCurrentMonthAssessments = async () => {
       'This will PERMANENTLY DELETE:\n' +
       '• All attendance records from previous month\n' +
       '• All assessment records from previous month\n' +
-      '• All associated photos\n\n' +
+      '• All associated Cloudinary images\n\n' +
       '⚠️ This action CANNOT be undone!\n\n' +
       'Only proceed if you have:\n' +
       '✓ Exported and backed up all data\n' +
@@ -212,6 +203,53 @@ const handleExportCurrentMonthAssessments = async () => {
     }
   };
 
+  // NEW: Clear ALL data (keeps user accounts)
+  const handleClearAllData = async () => {
+    if (confirmText !== 'DELETE_ALL_DATA') {
+      setMessage('✗ Please type "DELETE_ALL_DATA" exactly to confirm');
+      return;
+    }
+
+    const finalConfirm = confirm(
+      '🚨 FINAL WARNING: Clear ALL Data\n\n' +
+      'This will PERMANENTLY DELETE:\n' +
+      '• ALL attendance records (all time)\n' +
+      '• ALL assessment records (all time)\n' +
+      '• ALL archives\n' +
+      '• ALL Cloudinary images\n\n' +
+      '✅ User accounts will be PRESERVED\n\n' +
+      '⚠️ THIS CANNOT BE UNDONE!\n\n' +
+      'Are you absolutely sure?'
+    );
+
+    if (!finalConfirm) return;
+
+    setLoading(true);
+    setMessage('Clearing all data... This will take a few moments...');
+    
+    try {
+      const result = await archive.clearAllData(confirmText);
+      if (result.success) {
+        setMessage(
+          `✓ All data cleared successfully!\n\n` +
+          `Deleted:\n` +
+          `• ${result.deleted.attendance} attendance records\n` +
+          `• ${result.deleted.assessments} assessments\n` +
+          `• ${result.deleted.archives} archives\n` +
+          `• ${result.deleted.cloudinaryImages} Cloudinary images`
+        );
+        setConfirmText('');
+        setShowClearAll(false);
+        loadSummary();
+      }
+    } catch (error) {
+      console.error('Clear all error:', error);
+      setMessage(`✗ Failed to clear data: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({
       professorId: '',
@@ -221,38 +259,32 @@ const handleExportCurrentMonthAssessments = async () => {
   };
 
   const getFilenameFromResponse = (response, fallbackName) => {
-  const disposition = response?.headers?.['content-disposition'];
-  if (!disposition) return fallbackName;
-
-  // Example: attachment; filename=attendance_2026-01-26.zip
-  const match = disposition.match(/filename="?([^"]+)"?/);
-  return match?.[1] || fallbackName;
-};
+    const disposition = response?.headers?.['content-disposition'];
+    if (!disposition) return fallbackName;
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    return match?.[1] || fallbackName;
+  };
 
   const downloadFile = (responseOrBlob, fallbackFilename) => {
-  const blob = responseOrBlob?.data instanceof Blob ? responseOrBlob.data : responseOrBlob;
-
-  const filename =
-    responseOrBlob?.headers
+    const blob = responseOrBlob?.data instanceof Blob ? responseOrBlob.data : responseOrBlob;
+    const filename = responseOrBlob?.headers
       ? getFilenameFromResponse(responseOrBlob, fallbackFilename)
       : fallbackFilename;
 
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
-};
-
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
 
   if (loading || !summary) {
     return <div className="loading"><div className="spinner"></div></div>;
   }
 
-  // Get current month/year for display
   const now = new Date();
   const currentMonthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -262,7 +294,7 @@ const handleExportCurrentMonthAssessments = async () => {
       
       {message && (
         <div className={message.startsWith('✓') ? 'success-message' : 'error-message'}>
-          {message}
+          <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit' }}>{message}</pre>
         </div>
       )}
 
@@ -282,6 +314,18 @@ const handleExportCurrentMonthAssessments = async () => {
             {summary.archiveStatus?.completed ? '✓ Completed' : '⏳ Pending'}
           </span>
         </div>
+        {summary.currentData && (
+          <>
+            <div className="status-row">
+              <span className="label">Current Attendance Records:</span>
+              <span className="value">{summary.currentData.attendance || 0}</span>
+            </div>
+            <div className="status-row">
+              <span className="label">Current Assessments:</span>
+              <span className="value">{summary.currentData.assessments || 0}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Month-End Reminder */}
@@ -416,8 +460,8 @@ const handleExportCurrentMonthAssessments = async () => {
             <ol style={{ marginTop: '10px', paddingLeft: '20px' }}>
               <li>Archive is marked as complete</li>
               <li>Data remains accessible for the rest of the month</li>
-              <li>On the 1st-3rd of next month, cleanup runs automatically</li>
-              <li>Old data is permanently deleted</li>
+              <li>On the 1st-3rd of next month, cleanup runs <strong>automatically in the background</strong></li>
+              <li>Old data and Cloudinary images are permanently deleted</li>
             </ol>
           </div>
         </div>
@@ -445,6 +489,68 @@ const handleExportCurrentMonthAssessments = async () => {
         </div>
       )}
 
+      {/* SECTION 4: Clear ALL Data (Danger Zone) */}
+      <div className="action-section danger-section" style={{ marginTop: '30px', background: '#fef2f2', border: '2px solid #fecaca' }}>
+        <h3>🚨 Danger Zone: Clear ALL Data</h3>
+        <p className="warning-text">
+          <strong>⚠️ EXTREME CAUTION:</strong> This will permanently delete ALL attendance, assessments, and archives from ALL TIME.
+        </p>
+        <p>
+          <strong>What gets deleted:</strong> Everything (attendance, assessments, archives, Cloudinary images)<br/>
+          <strong>What's preserved:</strong> User accounts (professors, students, admins)
+        </p>
+
+        {!showClearAll ? (
+          <button 
+            className="btn btn-secondary"
+            onClick={() => setShowClearAll(true)}
+            style={{ background: '#f3f4f6', color: '#991b1b', border: '2px solid #fecaca' }}
+          >
+            Show Clear All Option
+          </button>
+        ) : (
+          <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '8px', border: '2px solid #fecaca' }}>
+            <p style={{ fontWeight: 'bold', color: '#991b1b', marginBottom: '10px' }}>
+              Type <code style={{ background: '#fee', padding: '2px 6px' }}>DELETE_ALL_DATA</code> to confirm:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="DELETE_ALL_DATA"
+              style={{ 
+                width: '100%', 
+                padding: '10px', 
+                marginBottom: '10px',
+                border: '2px solid #fecaca',
+                borderRadius: '5px',
+                fontFamily: 'monospace',
+                fontSize: '14px'
+              }}
+            />
+            <div className="button-group">
+              <button 
+                className="btn btn-danger"
+                onClick={handleClearAllData}
+                disabled={loading || confirmText !== 'DELETE_ALL_DATA'}
+                style={{ opacity: confirmText !== 'DELETE_ALL_DATA' ? 0.5 : 1 }}
+              >
+                🗑️ Clear All Data
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowClearAll(false);
+                  setConfirmText('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Instructions */}
       <div className="instructions-box">
         <h4>📖 How the Archive System Works</h4>
@@ -455,9 +561,18 @@ const handleExportCurrentMonthAssessments = async () => {
           <li><strong>Day 25-31:</strong> Export all data using the "Export Current Month Data" section</li>
           <li><strong>After exporting:</strong> Back up files to external storage (Google Drive, etc.)</li>
           <li><strong>Before month end:</strong> Mark archive as complete</li>
-          <li><strong>Day 1-3 of next month:</strong> Automatic cleanup deletes previous month's data</li>
+          <li><strong>Day 1-3 of next month:</strong> <strong>Automatic background cleanup</strong> deletes previous month's data</li>
           <li><strong>New month begins:</strong> Fresh data collection starts</li>
         </ol>
+
+        <h5>🤖 Automatic Background Cleanup:</h5>
+        <p>A cron job checks every hour and automatically runs cleanup on Day 1-3 if:</p>
+        <ul>
+          <li>✓ Previous month was marked as complete by admin</li>
+          <li>✓ Current date is between 1st-3rd of the month</li>
+          <li>✓ Cleanup hasn't already been executed this month</li>
+        </ul>
+        <p><strong>No manual intervention needed!</strong> The system handles it automatically.</p>
 
         <h5>💡 Best Practices:</h5>
         <ul>
@@ -468,17 +583,9 @@ const handleExportCurrentMonthAssessments = async () => {
           <li><strong>Mark complete only after:</strong> All data is safely backed up</li>
         </ul>
 
-        <h5>🔄 Automatic Cleanup:</h5>
-        <p>The system automatically deletes old data on Day 1-3 of each month <strong>ONLY IF</strong> the previous month was marked as complete. This prevents accidental data loss.</p>
-        
-        <h5>🚨 Emergency Manual Cleanup:</h5>
-        <p>Use manual cleanup only if:</p>
-        <ul>
-          <li>Automatic cleanup failed to run</li>
-          <li>Immediate cleanup is required</li>
-          <li>Database storage is critically low</li>
-        </ul>
-        <p className="warning-text">⚠️ Manual cleanup permanently deletes data. Ensure backups exist first!</p>
+        <h5>🚨 Emergency Options:</h5>
+        <p><strong>Manual Cleanup:</strong> Use if automatic cleanup fails or immediate cleanup needed</p>
+        <p><strong>Clear All Data:</strong> Nuclear option for testing or fresh starts (preserves user accounts)</p>
       </div>
     </div>
   );

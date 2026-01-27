@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -238,22 +238,17 @@ export const archive = {
       params,
       responseType: 'blob'
     });
-    return response;
+    return response.data;
   },
   
-exportAssessments: async (professorId = null, startDate = null, endDate = null) => {
-  const params = {};
-  if (professorId) params.professorId = professorId;
-  if (startDate) params.startDate = startDate;
-  if (endDate) params.endDate = endDate;
-
-  const response = await api.get('/archive/export/assessments', {
-    params,
-    responseType: 'blob'
-  });
-
-  return response;
-}
+  exportAssessments: async (professorId = null) => {
+    const params = professorId ? { professorId } : {};
+    const response = await api.get('/archive/export/assessments', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  }
 };
 
 export const publicApi = {
