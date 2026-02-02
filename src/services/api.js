@@ -252,7 +252,13 @@ export const archive = {
       responseType: 'blob'
     });
     return response; // ← Changed from response.data to response
-  }
+  },
+  clearAllData: async (confirmText) => {
+  const response = await api.post('/archive/clear-all', {
+    confirm: confirmText
+  });
+  return response.data;
+}
 };
 
 export const publicApi = {
