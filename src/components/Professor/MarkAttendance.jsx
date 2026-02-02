@@ -18,7 +18,8 @@ function MarkAttendance() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
-  const startFileInputRef = useRef(null); // Separate ref for start upload button
+  const startFileInputRef = useRef(null);
+  const endFileInputRef = useRef(null);
 
   const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Computer Science', 'English'];
   const sections = ['Section A', 'Section B', 'Section C', 'Section D'];
@@ -452,13 +453,25 @@ function MarkAttendance() {
             </button>
             <button 
               onClick={() => {
+                console.log('🖱️ End upload button clicked');
                 setCaptureType('end');
-                fileInputRef.current?.click();
+                if (endFileInputRef.current) {
+                  endFileInputRef.current.click();
+                } else {
+                  console.error('End file input ref is null');
+                }
               }}
               style={styles.uploadEndBtn}
             >
               <Upload size={20} /> Upload Photo
             </button>
+            <input 
+              ref={endFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
           </div>
         </div>
       )}
