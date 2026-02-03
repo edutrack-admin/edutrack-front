@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { users } from '../../services/api';
+import { DEPARTMENTS, getCoursesByDepartment, getDepartmentName } from '../../utils/courseData';
 
 function ProfessorList() {
   const [professors, setProfessors] = useState([]);
@@ -89,9 +90,12 @@ function ProfessorList() {
     }
   };
 
+ const availableCourses = editFormData.department ? getCoursesByDepartment(editFormData.department) : [];
+
   if (loading) {
     return <div className="loading"><div className="spinner"></div></div>;
   }
+  
   return (
     <div className="card">
       <h2>All Professors</h2>
