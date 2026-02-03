@@ -87,7 +87,7 @@ Please provide these credentials to the professor.`);
 
            <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="department">Department *</label>
+          <label htmlFor="department">Program *</label>
           <select
             id="department"
             name="department"
