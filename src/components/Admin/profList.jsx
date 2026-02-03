@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { users } from '../../services/api';
-import { DEPARTMENTS, getCoursesByDepartment, getDepartmentName } from '../../utils/courseData';
+import { DEPARTMENTS, getCoursesByDepartment} from '../../utils/courseData';
 
 function ProfessorList() {
   const [professors, setProfessors] = useState([]);
@@ -11,10 +11,10 @@ function ProfessorList() {
   const [editFormData, setEditFormData] = useState({
     fullName: '',
     email: '',
-    department: '',
-    subject: ''
   });
-
+  const [editAssignments, setEditAssignments] = useState([
+    { department: '', subject: '' }
+  ]);
 
   useEffect(() => {
     loadProfessors();
@@ -38,36 +38,76 @@ function ProfessorList() {
     setEditFormData({
       fullName: professor.fullName,
       email: professor.email,
-      department: professor.department || '',
-      subject: professor.subject || ''
     });
+    // Convert departments and subjects arrays to assignments format
+    const departments = professor.departments || (professor.department ? [professor.department] : []);
+    const subjects = professor.subjects || (professor.subject ? [professor.subject] : []);
+    
+    if (departments.length > 0 && subjects.length > 0) {
+      const assignments = departments.map((dept, idx) => ({
+        department: dept,
+        subject: subjects[idx] || ''
+      }));
+      setEditAssignments(assignments);
+    } else {
+      setEditAssignments([{ department: '', subject: '' }]);
+    }
+    
     setShowEditModal(true);
     setMessage('');
   };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
+  const handleEditFormChange = (e) => {
+    setEditFormData({
+      ...editFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleEditAssignmentChange = (index, field, value) => {
+    const newAssignments = [...editAssignments];
+    newAssignments[index][field] = value;
     
-    // If department changes, reset subject
-    if (name === 'department') {
-      setEditFormData({
-        ...editFormData,
-        department: value,
-        subject: ''
-      });
-    } else {
-      setEditFormData({
-        ...editFormData,
-        [name]: value
-      });
+    if (field === 'department') {
+      newAssignments[index].subject = '';
     }
+    
+    setEditAssignments(newAssignments);
+  };
+
+  const addEditAssignment = () => {
+    setEditAssignments([...editAssignments, { department: '', subject: '' }]);
+  };
+
+  const removeEditAssignment = (index) => {
+    if (editAssignments.length === 1) {
+      alert('Professor must have at least one subject assignment');
+      return;
+    }
+    const newAssignments = editAssignments.filter((_, i) => i !== index);
+    setEditAssignments(newAssignments);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate all assignments
+    const incompleteAssignments = editAssignments.filter(a => !a.department || !a.subject);
+    if (incompleteAssignments.length > 0) {
+      setMessage('✗ Please complete all department and subject selections');
+      return;
+    }
+    
     try {
-      await users.updateProfessor(editingProfessor._id, editFormData);
+      const departments = editAssignments.map(a => a.department);
+      const subjects = editAssignments.map(a => a.subject);
+      
+      await users.updateProfessor(editingProfessor._id, {
+        ...editFormData,
+        departments,
+        subjects
+      });
+      
       setMessage(`✓ Professor "${editFormData.fullName}" updated successfully`);
       setShowEditModal(false);
       setEditingProfessor(null);
@@ -90,12 +130,10 @@ function ProfessorList() {
     }
   };
 
- const availableCourses = editFormData.department ? getCoursesByDepartment(editFormData.department) : [];
-
   if (loading) {
     return <div className="loading"><div className="spinner"></div></div>;
   }
-  
+
   return (
     <div className="card">
       <h2>All Professors</h2>
@@ -127,22 +165,14 @@ function ProfessorList() {
               </tr>
             </thead>
             <tbody>
-              {professors.map(prof => (
-                <tr key={prof._id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {prof.profilePicture ? (
-                        <img 
-                          src={prof.profilePicture} 
-                          alt={prof.fullName}
-                          style={{ 
-                            width: '40px', 
-                            height: '40px', 
-                            borderRadius: '50%',
-                            objectFit: 'cover'
-                          }}
-                        />
-                      ) : (
+              {professors.map(prof => {
+                const departments = prof.departments || (prof.department ? [prof.department] : []);
+                const subjects = prof.subjects || (prof.subject ? [prof.subject] : []);
+                
+                return (
+                  <tr key={prof._id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '40px',
                           height: '40px',
@@ -156,52 +186,66 @@ function ProfessorList() {
                         }}>
                           {prof.fullName?.charAt(0) || 'P'}
                         </div>
+                        <strong>{prof.fullName}</strong>
+                      </div>
+                    </td>
+                    <td>{prof.email}</td>
+                    <td>
+                      {departments.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {departments.map((dept, idx) => (
+                            <span key={idx} className="badge badge-primary" style={{ fontSize: '11px' }}>
+                              {dept}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#999' }}>N/A</span>
                       )}
-                      <strong>{prof.fullName}</strong>
-                    </div>
-                  </td>
-                  <td>{prof.email}</td>
-                  <td>
-                    <span className="badge badge-primary">
-                      {prof.department || 'N/A'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge badge-info" style={{ 
-                      fontSize: '11px',
-                      maxWidth: '200px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'inline-block'
-                    }}>
-                      {prof.subject || 'N/A'}
-                    </span>
-                  </td>
-                  <td>
-                    {prof.createdAt ? 
-                      new Date(prof.createdAt).toLocaleDateString() : 
-                      'N/A'
-                    }
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handleEditClick(prof)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteProfessor(prof._id, prof.fullName)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      {subjects.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxWidth: '300px' }}>
+                          {subjects.map((subj, idx) => (
+                            <span key={idx} className="badge badge-info" style={{ 
+                              fontSize: '11px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }} title={subj}>
+                              {subj}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#999' }}>N/A</span>
+                      )}
+                    </td>
+                    <td>
+                      {prof.createdAt ? 
+                        new Date(prof.createdAt).toLocaleDateString() : 
+                        'N/A'
+                      }
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleEditClick(prof)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDeleteProfessor(prof._id, prof.fullName)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -215,7 +259,7 @@ function ProfessorList() {
       {showEditModal && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
-            maxWidth: '600px',
+            maxWidth: '700px',
             maxHeight: '90vh',
             overflowY: 'auto'
           }}>
@@ -231,67 +275,13 @@ function ProfessorList() {
 
             <form onSubmit={handleEditSubmit}>
               <div className="form-group">
-                <label htmlFor="edit-department">Department *</label>
-                <select
-                  id="edit-department"
-                  name="department"
-                  value={editFormData.department}
-                  onChange={handleEditChange}
-                  required
-                  style={{
-                    padding: '10px',
-                    fontSize: '16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    width: '100%'
-                  }}
-                >
-                  <option value="">Select Department</option>
-                  {DEPARTMENTS.map(dept => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="edit-subject">Subject/Course *</label>
-                <select
-                  id="edit-subject"
-                  name="subject"
-                  value={editFormData.subject}
-                  onChange={handleEditChange}
-                  required
-                  disabled={!editFormData.department}
-                  style={{
-                    padding: '10px',
-                    fontSize: '16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    width: '100%',
-                    backgroundColor: !editFormData.department ? '#f5f5f5' : 'white'
-                  }}
-                >
-                  <option value="">
-                    {editFormData.department ? 'Select Subject/Course' : 'Select Department First'}
-                  </option>
-                  {availableCourses.map((course, index) => (
-                    <option key={index} value={course}>
-                      {course}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="edit-fullName">Full Name *</label>
                 <input
                   type="text"
                   id="edit-fullName"
                   name="fullName"
                   value={editFormData.fullName}
-                  onChange={handleEditChange}
+                  onChange={handleEditFormChange}
                   required
                   style={{
                     padding: '10px',
@@ -310,7 +300,7 @@ function ProfessorList() {
                   id="edit-email"
                   name="email"
                   value={editFormData.email}
-                  onChange={handleEditChange}
+                  onChange={handleEditFormChange}
                   required
                   style={{
                     padding: '10px',
@@ -320,6 +310,106 @@ function ProfessorList() {
                     width: '100%'
                   }}
                 />
+              </div>
+
+              <hr style={{ margin: '20px 0', border: 'none', borderTop: '2px solid #e0e0e0' }} />
+
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0 }}>Subject Assignments</h3>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={addEditAssignment}
+                    style={{ padding: '8px 16px', fontSize: '14px' }}
+                  >
+                    + Add Subject
+                  </button>
+                </div>
+
+                {editAssignments.map((assignment, index) => (
+                  <div key={index} style={{
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    marginBottom: '15px',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <strong>Assignment #{index + 1}</strong>
+                      {editAssignments.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEditAssignment(index)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            fontSize: '20px',
+                            padding: '0',
+                            lineHeight: '1'
+                          }}
+                          title="Remove assignment"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>Department *</label>
+                        <select
+                          value={assignment.department}
+                          onChange={(e) => handleEditAssignmentChange(index, 'department', e.target.value)}
+                          required
+                          style={{
+                            padding: '10px',
+                            fontSize: '16px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            width: '100%'
+                          }}
+                        >
+                          <option value="">Select</option>
+                          {DEPARTMENTS.map(dept => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.id}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label>Subject/Course *</label>
+                        <select
+                          value={assignment.subject}
+                          onChange={(e) => handleEditAssignmentChange(index, 'subject', e.target.value)}
+                          required
+                          disabled={!assignment.department}
+                          style={{
+                            padding: '10px',
+                            fontSize: '16px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            width: '100%',
+                            backgroundColor: !assignment.department ? '#f5f5f5' : 'white'
+                          }}
+                        >
+                          <option value="">
+                            {assignment.department ? 'Select Subject' : 'Select Department First'}
+                          </option>
+                          {assignment.department && getCoursesByDepartment(assignment.department).map((course, idx) => (
+                            <option key={idx} value={course}>
+                              {course}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="modal-actions" style={{

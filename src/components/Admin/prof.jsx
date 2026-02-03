@@ -6,30 +6,48 @@ function CreateProfessor() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    department: '',
-    subject: '',
     temporaryPassword: ''
   });
+
+    // Array of department-subject pairs
+  const [assignments, setAssignments] = useState([
+    { department: '', subject: '' }
+  ]);
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleAssignmentChange = (index, field, value) => {
+    const newAssignments = [...assignments];
+    newAssignments[index][field] = value;
     
-    // If department changes, reset subject
-    if (name === 'department') {
-      setFormData({
-        ...formData,
-        department: value,
-        subject: ''
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
+    // If department changes, reset subject for that assignment
+    if (field === 'department') {
+      newAssignments[index].subject = '';
     }
+    
+    setAssignments(newAssignments);
+  };
+
+  const addAssignment = () => {
+    setAssignments([...assignments, { department: '', subject: '' }]);
+  };
+
+  const removeAssignment = (index) => {
+    if (assignments.length === 1) {
+      alert('Professor must have at least one subject assignment');
+      return;
+    }
+    const newAssignments = assignments.filter((_, i) => i !== index);
+    setAssignments(newAssignments);
   };
 
   const generateTemporaryPassword = () => {
@@ -45,15 +63,32 @@ function CreateProfessor() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validate all assignments are complete
+    const incompleteAssignments = assignments.filter(a => !a.department || !a.subject);
+    if (incompleteAssignments.length > 0) {
+      setError('Please complete all department and subject selections');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await users.createProfessor(formData);
+      // Extract departments and subjects arrays
+      const departments = assignments.map(a => a.department);
+      const subjects = assignments.map(a => a.subject);
+
+      await users.createProfessor({
+        ...formData,
+        departments,
+        subjects
+      });
 
       setSuccess(`✓ Professor account created successfully! 
 
 Email: ${formData.email}
 Temporary Password: ${formData.temporaryPassword}
+Assigned Subjects: ${subjects.length}
 
 Please provide these credentials to the professor.`);
       
@@ -61,10 +96,9 @@ Please provide these credentials to the professor.`);
       setFormData({
         fullName: '',
         email: '',
-        department: '',
-        subject: '',
         temporaryPassword: ''
       });
+      setAssignments([{ department: '', subject: '' }]);
     } catch (err) {
       console.error('Error:', err);
       setError(err.response?.data?.message || 'Failed to create professor account');
@@ -72,77 +106,17 @@ Please provide these credentials to the professor.`);
       setLoading(false);
     }
   };
-
-  const availableCourses = formData.department ? getCoursesByDepartment(formData.department) : [];
-
   return (
     <div className="card">
       <h2>Create Professor Account</h2>
       <p style={{ color: '#666', marginBottom: '20px' }}>
-        Create a new professor account manually. You will need to provide credentials to the professor.
+        Create a new professor account. Professors can be assigned multiple subjects across different departments.
       </p>
 
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message" style={{ whiteSpace: 'pre-line' }}>{success}</div>}
 
-           <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="department">Program *</label>
-          <select
-            id="department"
-            name="department"
-            value={formData.department}
-            onChange={handleChange}
-            required
-            style={{
-              padding: '10px',
-              fontSize: '16px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              width: '100%'
-            }}
-          >
-            <option value="">Select Program</option>
-            {DEPARTMENTS.map(dept => (
-              <option key={dept.id} value={dept.id}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="subject">Subject/Course *</label>
-          <select
-            id="subject"
-            name="subject"
-            value={formData.subject}
-            onChange={handleChange}
-            required
-            disabled={!formData.department}
-            style={{
-              padding: '10px',
-              fontSize: '16px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              width: '100%',
-              backgroundColor: !formData.department ? '#f5f5f5' : 'white'
-            }}
-          >
-            <option value="">
-              {formData.department ? 'Select Subject/Course' : 'Select Department First'}
-            </option>
-            {availableCourses.map((course, index) => (
-              <option key={index} value={course}>
-                {course}
-              </option>
-            ))}
-          </select>
-          <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '5px' }}>
-            The primary subject/course this professor teaches
-          </small>
-        </div>
-
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="fullName">Full Name *</label>
           <input
@@ -214,9 +188,106 @@ Please provide these credentials to the professor.`);
               Generate
             </button>
           </div>
-          <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '5px' }}>
-            Provide this password to the professor
-          </small>
+        </div>
+
+        <hr style={{ margin: '30px 0', border: 'none', borderTop: '2px solid #e0e0e0' }} />
+
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0 }}>Subject Assignments</h3>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={addAssignment}
+              style={{ padding: '8px 16px', fontSize: '14px' }}
+            >
+              + Add Subject
+            </button>
+          </div>
+
+          {assignments.map((assignment, index) => (
+            <div key={index} style={{
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              padding: '15px',
+              marginBottom: '15px',
+              backgroundColor: '#fafafa'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <strong>Assignment #{index + 1}</strong>
+                {assignments.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeAssignment(index)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '0',
+                      lineHeight: '1'
+                    }}
+                    title="Remove assignment"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Department *</label>
+                  <select
+                    value={assignment.department}
+                    onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)}
+                    required
+                    style={{
+                      padding: '10px',
+                      fontSize: '16px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '8px',
+                      width: '100%'
+                    }}
+                  >
+                    <option value="">Select</option>
+                    {DEPARTMENTS.map(dept => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Subject/Course *</label>
+                  <select
+                    value={assignment.subject}
+                    onChange={(e) => handleAssignmentChange(index, 'subject', e.target.value)}
+                    required
+                    disabled={!assignment.department}
+                    style={{
+                      padding: '10px',
+                      fontSize: '16px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '8px',
+                      width: '100%',
+                      backgroundColor: !assignment.department ? '#f5f5f5' : 'white'
+                    }}
+                  >
+                    <option value="">
+                      {assignment.department ? 'Select Subject' : 'Select Department First'}
+                    </option>
+                    {assignment.department && getCoursesByDepartment(assignment.department).map((course, idx) => (
+                      <option key={idx} value={course}>
+                        {course}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="disclaimer-box" style={{

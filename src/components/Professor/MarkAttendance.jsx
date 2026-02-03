@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Clock, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { attendance } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { getCoursesByDepartment } from '../../utils/courseData';
 
 function MarkAttendance() {
   const { user } = useAuth();
@@ -24,11 +23,10 @@ function MarkAttendance() {
   const startFileInputRef = useRef(null);
   const endFileInputRef = useRef(null);
 
-  const subjects = user?.department ? getCoursesByDepartment(user.department) : [];
+  const subjects = user?.subjects || [];
   const sections = ['Section A', 'Section B', 'Section C', 'Section D'];
 
   useEffect(() => {
-    console.log('MarkAttendance component mounted');
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -317,7 +315,16 @@ function MarkAttendance() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-      `}</style>     
+      `}</style> 
+
+      <div style={{ padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '20px', borderRadius: '8px' }}>
+        <strong>Debug Info:</strong>
+        <div>Selected Subject: {selectedSubject || 'None'}</div>
+        <div>Selected Section: {selectedSection || 'None'}</div>
+        <div>Loading: {loading ? 'Yes' : 'No'}</div>
+        <div>Button Enabled: {selectedSubject && selectedSection && !loading ? 'Yes' : 'No'}</div>
+      </div>
+
       {showCamera && (
         <div style={styles.cameraModal}>
           <div style={styles.cameraContainer}>
@@ -355,7 +362,6 @@ function MarkAttendance() {
               </button>
               <button 
                 onClick={() => {
-                  console.log('📤 Upload button clicked in camera modal');
                   fileInputRef.current?.click();
                 }} 
                 style={styles.uploadBtn}
@@ -444,20 +450,37 @@ function MarkAttendance() {
         <div style={styles.startClassCard}>
           <h2 style={styles.cardTitle}>Start New Class</h2>
           
+          {(!user?.subjects || user.subjects.length === 0) && (
+            <div style={{
+              background: '#fff3e0',
+              border: '2px solid #ff9800',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <strong>⚠️ No Subjects Assigned</strong>
+              <p style={{ marginTop: '5px', fontSize: '14px', marginBottom: 0 }}>
+                You don't have any subjects assigned yet. Please contact the admin to assign subjects to your account before marking attendance.
+              </p>
+            </div>
+          )}
+          
           <div style={styles.formGrid}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Subject *</label>
               <select 
                 value={selectedSubject}
                 onChange={(e) => {
-                  console.log('Subject changed to:', e.target.value);
                   setSelectedSubject(e.target.value);
                 }}
                 style={styles.select}
+                disabled={!user?.subjects || user.subjects.length === 0}
               >
-                <option value="">Select Subject</option>
-                {subjects.map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
+                <option value="">
+                  {user?.subjects && user.subjects.length > 0 ? 'Select Subject' : 'No Subjects Assigned'}
+                </option>
+                {subjects.map((subject, idx) => (
+                  <option key={idx} value={subject}>{subject}</option>
                 ))}
               </select>
             </div>
@@ -467,7 +490,6 @@ function MarkAttendance() {
               <select 
                 value={selectedSection}
                 onChange={(e) => {
-                  console.log('Section changed to:', e.target.value);
                   setSelectedSection(e.target.value);
                 }}
                 style={styles.select}
@@ -480,13 +502,14 @@ function MarkAttendance() {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Classroom (Optional)</label>
+              <label style={styles.label}>Classroom *</label>
               <input 
                 type="text"
                 value={classRoom}
                 onChange={(e) => setClassRoom(e.target.value)}
                 placeholder="e.g., Room 301"
                 style={styles.input}
+                required
               />
             </div>
 
@@ -516,15 +539,12 @@ function MarkAttendance() {
             </button>
             <button 
               onClick={() => {
-                console.log('🖱️ Upload button clicked!');
-                console.log('Subject:', selectedSubject, 'Section:', selectedSection);
                 
                 if (!selectedSubject || !selectedSection) {
                   alert('Please select subject and section');
                   return;
                 }
                 
-                console.log('Opening file picker for START photo');
                 setCaptureType('start');
                 
                 // Use the separate file input for start button
