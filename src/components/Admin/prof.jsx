@@ -73,6 +73,8 @@ Please provide these credentials to the professor.`);
     }
   };
 
+  const availableCourses = formData.department ? getCoursesByDepartment(formData.department) : [];
+
   return (
     <div className="card">
       <h2>Create Professor Account</h2>
