@@ -102,7 +102,7 @@ Please provide these credentials to the professor.`);
               width: '100%'
             }}
           >
-            <option value="">Select Department</option>
+            <option value="">Select Program</option>
             {DEPARTMENTS.map(dept => (
               <option key={dept.id} value={dept.id}>
                 {dept.name}
