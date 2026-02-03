@@ -214,7 +214,7 @@ Please provide these credentials to the professor.`);
               backgroundColor: '#fafafa'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <strong>Assignment #{index + 1}</strong>
+                <strong>Subject #{index + 1}</strong>
                 {assignments.length > 1 && (
                   <button
                     type="button"
@@ -237,7 +237,7 @@ Please provide these credentials to the professor.`);
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Department *</label>
+                  <label>Program *</label>
                   <select
                     value={assignment.department}
                     onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)}
