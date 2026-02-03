@@ -82,6 +82,11 @@ export const users = {
     const response = await api.get('/users/students');
     return response.data;
   },
+
+  updateProfessor: async (id, data) => {
+    const response = await api.put(`/users/professor/${id}`, data);
+    return response.data;
+  },
   
   deleteUser: async (id) => {
     const response = await api.delete(`/users/${id}`);

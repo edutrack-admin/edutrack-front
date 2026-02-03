@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { users } from '../../services/api';
+import { DEPARTMENTS, getCoursesByDepartment } from '../../utils/courseData';
 
 function CreateProfessor() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    department: '',
     subject: '',
     temporaryPassword: ''
   });
@@ -13,10 +15,21 @@ function CreateProfessor() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    // If department changes, reset subject
+    if (name === 'department') {
+      setFormData({
+        ...formData,
+        department: value,
+        subject: ''
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const generateTemporaryPassword = () => {
@@ -48,6 +61,7 @@ Please provide these credentials to the professor.`);
       setFormData({
         fullName: '',
         email: '',
+        department: '',
         subject: '',
         temporaryPassword: ''
       });
@@ -69,9 +83,66 @@ Please provide these credentials to the professor.`);
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message" style={{ whiteSpace: 'pre-line' }}>{success}</div>}
 
-      <form onSubmit={handleSubmit}>
+           <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="fullName">Full Name</label>
+          <label htmlFor="department">Department *</label>
+          <select
+            id="department"
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+            required
+            style={{
+              padding: '10px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              width: '100%'
+            }}
+          >
+            <option value="">Select Department</option>
+            {DEPARTMENTS.map(dept => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="subject">Subject/Course *</label>
+          <select
+            id="subject"
+            name="subject"
+            value={formData.subject}
+            onChange={handleChange}
+            required
+            disabled={!formData.department}
+            style={{
+              padding: '10px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              width: '100%',
+              backgroundColor: !formData.department ? '#f5f5f5' : 'white'
+            }}
+          >
+            <option value="">
+              {formData.department ? 'Select Subject/Course' : 'Select Department First'}
+            </option>
+            {availableCourses.map((course, index) => (
+              <option key={index} value={course}>
+                {course}
+              </option>
+            ))}
+          </select>
+          <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '5px' }}>
+            The primary subject/course this professor teaches
+          </small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="fullName">Full Name *</label>
           <input
             type="text"
             id="fullName"
@@ -80,11 +151,18 @@ Please provide these credentials to the professor.`);
             onChange={handleChange}
             placeholder="Prof. Juan Dela Cruz"
             required
+            style={{
+              padding: '10px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              width: '100%'
+            }}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email Address</label>
+          <label htmlFor="email">Email Address *</label>
           <input
             type="email"
             id="email"
@@ -93,27 +171,18 @@ Please provide these credentials to the professor.`);
             onChange={handleChange}
             placeholder="professor@school.edu"
             required
+            style={{
+              padding: '10px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              width: '100%'
+            }}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="subject">Subject/Course</label>
-          <input
-            type="text"
-            id="subject"
-            name="subject"
-            value={formData.subject}
-            onChange={handleChange}
-            placeholder="e.g., Mathematics, English, Science"
-            required
-          />
-          <small style={{ color: '#666', fontSize: '12px' }}>
-            The primary subject this professor teaches
-          </small>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="temporaryPassword">Temporary Password</label>
+          <label htmlFor="temporaryPassword">Temporary Password *</label>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
               type="text"
@@ -123,17 +192,27 @@ Please provide these credentials to the professor.`);
               onChange={handleChange}
               placeholder="Click generate or enter manually"
               required
-              style={{ flex: 1 }}
+              style={{ 
+                flex: 1,
+                padding: '10px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px'
+              }}
             />
             <button
               type="button"
               className="btn btn-secondary"
               onClick={generateTemporaryPassword}
+              style={{
+                padding: '10px 20px',
+                whiteSpace: 'nowrap'
+              }}
             >
               Generate
             </button>
           </div>
-          <small style={{ color: '#666', fontSize: '12px' }}>
+          <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '5px' }}>
             Provide this password to the professor
           </small>
         </div>
@@ -142,12 +221,12 @@ Please provide these credentials to the professor.`);
           background: '#fff3e0',
           border: '2px solid #ff9800',
           padding: '15px',
-          borderRadius: '5px',
+          borderRadius: '8px',
           marginBottom: '20px'
         }}>
           <strong>⚠️ Important:</strong>
-          <p style={{ marginTop: '5px', fontSize: '14px' }}>
-            You will be asked for your admin password to complete this action. This prevents unauthorized account creation.
+          <p style={{ marginTop: '5px', fontSize: '14px', marginBottom: 0 }}>
+            The professor will be required to change their password on first login.
           </p>
         </div>
 

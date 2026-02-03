@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Clock, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import { attendance } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { getCoursesByDepartment } from '../../utils/courseData';
 
 function MarkAttendance() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [sessions, setSessions] = useState([]);
@@ -21,7 +24,7 @@ function MarkAttendance() {
   const startFileInputRef = useRef(null);
   const endFileInputRef = useRef(null);
 
-  const subjects = ['Mathematics', 'Physics', 'Chemistry', 'Computer Science', 'English'];
+  const subjects = user?.department ? getCoursesByDepartment(user.department) : [];
   const sections = ['Section A', 'Section B', 'Section C', 'Section D'];
 
   useEffect(() => {
@@ -36,15 +39,12 @@ function MarkAttendance() {
   // Attach stream to video when both are ready
   useEffect(() => {
     if (stream && videoRef.current && showCamera) {
-      console.log('🎬 Attaching stream to video via useEffect');
       const video = videoRef.current;
       video.srcObject = stream;
       
       video.onloadedmetadata = () => {
-        console.log('📹 Video metadata loaded via useEffect');
         video.play()
           .then(() => {
-            console.log('✅ Video is now playing');
             setCameraLoading(false);
           })
           .catch(err => {
@@ -56,16 +56,11 @@ function MarkAttendance() {
   }, [stream, showCamera]);
 
   const startCamera = async (type) => {
-    console.log('🎥 startCamera called with type:', type);
-    console.log('Selected Subject:', selectedSubject);
-    console.log('Selected Section:', selectedSection);
-    
     setCameraLoading(true);
     setShowCamera(true);
     setCaptureType(type);
     
     try {
-      console.log('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'user',
@@ -74,13 +69,9 @@ function MarkAttendance() {
         },
         audio: false 
       });
-      console.log('✅ Camera access granted');
-      console.log('Stream active:', mediaStream.active);
-      console.log('Video tracks:', mediaStream.getVideoTracks().length);
       
       setStream(mediaStream);
       
-      console.log('Camera modal visible, stream set');
     } catch (error) {
       console.error('❌ Camera error:', error);
       alert('Error accessing camera: ' + error.message);
@@ -122,9 +113,7 @@ function MarkAttendance() {
   };
 
   const handleFileUpload = (event) => {
-    console.log('📁 File upload triggered');
     const file = event.target.files[0];
-    console.log('File object:', file);
     
     if (file && file.type.startsWith('image/')) {
       console.log('✅ Valid image file selected:', file.name, file.size);
@@ -142,7 +131,6 @@ function MarkAttendance() {
   };
 
   const handlePhotoCapture = async (imageUrl, imageBlob) => {
-    console.log('📷 handlePhotoCapture called, type:', captureType);
     const timestamp = new Date();
     
     if (captureType === 'start') {
@@ -150,10 +138,13 @@ function MarkAttendance() {
         alert('Please select subject and section before starting class');
         return;
       }
+    if (!classRoom || classRoom.trim() === '') {
+       alert('Please enter a classroom before starting class');
+      return;
+      }
 
       try {
         setLoading(true);
-        console.log('🚀 Calling backend API - attendance.start');
 
         const result = await attendance.start(
           {
@@ -164,8 +155,6 @@ function MarkAttendance() {
           },
           imageBlob
         );
-
-        console.log('✅ Backend response:', result);
 
         const newSession = {
           ...result.data,
@@ -194,14 +183,11 @@ function MarkAttendance() {
     } else if (captureType === 'end' && activeSession) {
       try {
         setLoading(true);
-        console.log('🚀 Calling backend API - attendance.end');
 
         const result = await attendance.end(
           activeSession._id || activeSession.id,
           imageBlob
         );
-
-        console.log('✅ Backend response:', result);
 
         const updatedSession = {
           ...result.data,
@@ -281,9 +267,7 @@ function MarkAttendance() {
   useEffect(() => {
     const loadTodaySessions = async () => {
       try {
-        console.log('📥 Loading today\'s sessions...');
         const result = await attendance.getToday();
-        console.log('Today\'s sessions result:', result);
         
         if (result.success && result.data) {
           const transformedSessions = result.data.map(s => ({
@@ -297,7 +281,6 @@ function MarkAttendance() {
           const ongoing = transformedSessions.find(s => s.status === 'ongoing');
           if (ongoing) {
             setActiveSession(ongoing);
-            console.log('Found ongoing session:', ongoing);
           }
         }
       } catch (error) {
@@ -310,25 +293,15 @@ function MarkAttendance() {
 
   // Debug: Log state changes
   useEffect(() => {
-    console.log('State update - selectedSubject:', selectedSubject);
   }, [selectedSubject]);
 
   useEffect(() => {
-    console.log('State update - selectedSection:', selectedSection);
   }, [selectedSection]);
 
   useEffect(() => {
-    console.log('State update - loading:', loading);
   }, [loading]);
 
   const handleCameraButtonClick = () => {
-    console.log('🖱️ Camera button clicked!');
-    console.log('Current state:');
-    console.log('  - selectedSubject:', selectedSubject);
-    console.log('  - selectedSection:', selectedSection);
-    console.log('  - loading:', loading);
-    console.log('  - Button disabled?', !selectedSubject || !selectedSection || loading);
-    
     if (!selectedSubject || !selectedSection) {
       alert('Please select both subject and section first!');
       return;
@@ -344,16 +317,7 @@ function MarkAttendance() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-      `}</style>
-      
-      <div style={{ padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '20px', borderRadius: '8px' }}>
-        <strong>Debug Info:</strong>
-        <div>Selected Subject: {selectedSubject || 'None'}</div>
-        <div>Selected Section: {selectedSection || 'None'}</div>
-        <div>Loading: {loading ? 'Yes' : 'No'}</div>
-        <div>Button Enabled: {selectedSubject && selectedSection && !loading ? 'Yes' : 'No'}</div>
-      </div>
-
+      `}</style>     
       {showCamera && (
         <div style={styles.cameraModal}>
           <div style={styles.cameraContainer}>

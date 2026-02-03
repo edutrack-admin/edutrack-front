@@ -68,20 +68,7 @@ function ProfessorDashboard() {
           >
             Schedule
           </button>
-          <button 
-            className={`tab ${activeTab === 'assessments' ? 'active' : ''}`}
-            onClick={() => setActiveTab('assessments')}
-          >
-            Assessments
-          </button>
-          <button 
-            className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            Profile
-          </button>
         </div>
-
         <div className="tab-content">
           {activeTab === 'mark' && <MarkAttendance />}
           {activeTab === 'history' && (
@@ -94,18 +81,6 @@ function ProfessorDashboard() {
             <div className="card">
               <h2>Class Schedule</h2>
               <p className="placeholder">Calendar component will be added here...</p>
-            </div>
-          )}
-          {activeTab === 'assessments' && (
-            <div className="card">
-              <h2>Student Assessments</h2>
-              <p className="placeholder">Assessments component will be added here...</p>
-            </div>
-          )}
-          {activeTab === 'profile' && (
-            <div className="card">
-              <h2>Profile Settings</h2>
-              <p className="placeholder">Profile component will be added here...</p>
             </div>
           )}
         </div>
