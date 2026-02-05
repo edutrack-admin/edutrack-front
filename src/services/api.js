@@ -258,12 +258,51 @@ export const archive = {
     });
     return response; // ← Changed from response.data to response
   },
+
   clearAllData: async (confirmText) => {
   const response = await api.post('/archive/clear-all', {
     confirm: confirmText
   });
   return response.data;
 }
+};
+
+// Sections (Admin only)
+export const sections = {
+  getAll: async () => {
+    const response = await api.get('/sections');
+    return response.data;
+  },
+  
+  getById: async (id) => {
+    const response = await api.get(`/sections/${id}`);
+    return response.data;
+  },
+  
+  create: async (data) => {
+    const response = await api.post('/sections', data);
+    return response.data;
+  },
+  
+  update: async (id, data) => {
+    const response = await api.put(`/sections/${id}`, data);
+    return response.data;
+  },
+  
+  delete: async (id) => {
+    const response = await api.delete(`/sections/${id}`);
+    return response.data;
+  },
+  
+  addStudents: async (id, studentIds) => {
+    const response = await api.post(`/sections/${id}/students`, { studentIds });
+    return response.data;
+  },
+  
+  removeStudent: async (sectionId, studentId) => {
+    const response = await api.delete(`/sections/${sectionId}/students/${studentId}`);
+    return response.data;
+  }
 };
 
 export const publicApi = {

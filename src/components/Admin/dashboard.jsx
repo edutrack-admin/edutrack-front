@@ -6,6 +6,7 @@ import CreateStudent from './stud';
 import ProfessorList from './profList';
 import StudentList from './studList';
 import ArchiveManager from './archive';
+import SectionManager from './sectionManager';
 import './archive.css';
 
 function AdminDashboard() {
@@ -59,6 +60,12 @@ function AdminDashboard() {
             All Students
           </button>
           <button 
+            className={`tab ${activeTab === 'sections' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sections')}
+          >
+            📚 Sections
+          </button>
+          <button 
             className={`tab ${activeTab === 'archive' ? 'active' : ''}`}
             onClick={() => setActiveTab('archive')}
           >
@@ -71,6 +78,7 @@ function AdminDashboard() {
           {activeTab === 'createStud' && <CreateStudent />}
           {activeTab === 'professors' && <ProfessorList />}
           {activeTab === 'students' && <StudentList />}
+          {activeTab === 'sections' && <SectionManager />}
           {activeTab === 'archive' && <ArchiveManager />}
         </div>
       </div>
