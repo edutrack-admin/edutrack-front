@@ -3,11 +3,16 @@ import { users } from '../../services/api';
 
 function StudentList() {
   const [students, setStudents] = useState([]);
+  const [sectionList, setSectionList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedSection, setSelectedSection] = useState('');
 
   useEffect(() => {
     loadStudents();
+    loadSections();
   }, []);
 
   const loadStudents = async () => {
@@ -20,6 +25,42 @@ function StudentList() {
       setMessage(`Error loading students: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSections = async () => {
+    try {
+      const data = await sections.getAll();
+      setSectionList(data);
+    } catch (error) {
+      console.error('Error loading sections:', error);
+    }
+  };
+
+  const handleAssignSection = (student) => {
+    setSelectedStudent(student);
+    setSelectedSection(student.section?._id || '');
+    setShowAssignModal(true);
+    setMessage('');
+  };
+
+  const handleAssignSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (!selectedSection) {
+        setMessage('Please select a section');
+        return;
+      }
+
+      // Add student to section
+      await sections.addStudents(selectedSection, [selectedStudent._id]);
+      
+      setMessage(`✓ ${selectedStudent.fullName} assigned to section successfully`);
+      setShowAssignModal(false);
+      loadStudents();
+    } catch (error) {
+      setMessage(`✗ Error assigning section: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -68,7 +109,6 @@ function StudentList() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Class Role</th>
-                <th>Verified</th>
                 <th>Joined</th>
                 <th>Actions</th>
               </tr>
@@ -109,6 +149,17 @@ function StudentList() {
                   </td>
                   <td>{student.email}</td>
                   <td>
+                    {student.section ? (
+                      <span className="badge badge-primary">
+                        {student.section.name || student.section}
+                      </span>
+                    ) : (
+                      <span className="badge" style={{ background: '#999', color: 'white' }}>
+                        No Section
+                      </span>
+                    )}
+                  </td>
+                  <td>
                     <span className="badge badge-success">
                       {student.role === 'president' ? 'President' :
                        student.role === 'vp' ? 'Vice President' :
@@ -117,9 +168,10 @@ function StudentList() {
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${student.emailVerified ? 'badge-success' : 'badge-warning'}`}>
-                      {student.emailVerified ? '✓ Verified' : '⏳ Pending'}
-                    </span>
+                    {student.createdAt ? 
+                      new Date(student.createdAt).toLocaleDateString() : 
+                      'N/A'
+                    }
                   </td>
                   <td>
                     {student.createdAt ? 
@@ -145,6 +197,68 @@ function StudentList() {
       <div style={{ marginTop: '20px', padding: '15px', background: '#f9f9f9', borderRadius: '5px' }}>
         <strong>Total Students:</strong> {students.length}
       </div>
+
+      {/* Assign Section Modal */}
+      {showAssignModal && selectedStudent && (
+        <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2>Assign Section</h2>
+              <button className="modal-close" onClick={() => setShowAssignModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <strong>Student:</strong> {selectedStudent.fullName}
+            </div>
+
+            <form onSubmit={handleAssignSubmit}>
+              <div className="form-group">
+                <label htmlFor="section">Select Section *</label>
+                <select
+                  id="section"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  required
+                  style={{
+                    padding: '10px',
+                    fontSize: '16px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    width: '100%'
+                  }}
+                >
+                  <option value="">Select a section</option>
+                  {sectionList.map(section => (
+                    <option key={section._id} value={section._id}>
+                      {section.name} ({section.students?.length || 0} students)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-actions" style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'flex-end',
+                marginTop: '20px'
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowAssignModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Assign Section
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
