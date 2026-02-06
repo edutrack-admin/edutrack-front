@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { users } from '../../services/api';
+import { useState, useEffect } from 'react';
+import { users, sections } from '../../services/api';
 
 function CreateStudent() {
   const [formData, setFormData] = useState({
