@@ -53,12 +53,6 @@ function CreateStudent() {
       // Create student
       await users.createStudent(formData);
 
-      // If section selected, assign student to section
-      if (formData.section) {
-        // Note: We'd need the created student's ID to assign them
-        // For now, students can be assigned via the student list
-      }
-
       setSuccess(`✓ Student account created successfully! 
 
 Email: ${formData.email}
