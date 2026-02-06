@@ -73,7 +73,7 @@ function StudentList() {
     try {
       await users.deleteUser(studentId);
       setMessage(`✓ Student "${studentName}" deleted successfully`);
-      loadStudents(); // Reload list
+      loadStudents();
     } catch (error) {
       console.error('Delete error:', error);
       setMessage(`✗ Error deleting student: ${error.message}`);
@@ -189,14 +189,6 @@ function StudentList() {
                         Delete
                       </button>
                     </div>
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteStudent(student._id, student.fullName)}
-                    >
-                      Delete
-                    </button>
                   </td>
                 </tr>
               ))}
