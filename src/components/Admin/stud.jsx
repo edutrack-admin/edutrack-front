@@ -6,11 +6,26 @@ function CreateStudent() {
     fullName: '',
     email: '',
     role: 'president',
+    section: '',
     temporaryPassword: ''
   });
+  const [sectionList, setSectionList] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadSections();
+  }, []);
+
+  const loadSections = async () => {
+    try {
+      const data = await sections.getAll();
+      setSectionList(data);
+    } catch (error) {
+      console.error('Error loading sections:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -34,9 +49,15 @@ function CreateStudent() {
     setSuccess('');
     setLoading(true);
 
-    try {
-      // ✅ FIXED: Call createStudent instead of createProfessor
+   try {
+      // Create student
       await users.createStudent(formData);
+
+      // If section selected, assign student to section
+      if (formData.section) {
+        // Note: We'd need the created student's ID to assign them
+        // For now, students can be assigned via the student list
+      }
 
       setSuccess(`✓ Student account created successfully! 
 
@@ -112,6 +133,26 @@ Please provide these credentials to the student.`);
           </select>
           <small style={{ color: '#666', fontSize: '12px' }}>
             Only President, VP, and Secretary can submit assessments
+          </small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="section">Section (Optional)</label>
+          <select
+            id="section"
+            name="section"
+            value={formData.section}
+            onChange={handleChange}
+          >
+            <option value="">No Section (Assign Later)</option>
+            {sectionList.map(section => (
+              <option key={section._id} value={section._id}>
+                {section.name} ({section.students?.length || 0} students)
+              </option>
+            ))}
+          </select>
+          <small style={{ color: '#666', fontSize: '12px' }}>
+            You can assign or change the section later
           </small>
         </div>
 

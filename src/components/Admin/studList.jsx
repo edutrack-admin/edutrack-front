@@ -108,6 +108,7 @@ function StudentList() {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Section</th>
                 <th>Class Role</th>
                 <th>Joined</th>
                 <th>Actions</th>
@@ -174,10 +175,20 @@ function StudentList() {
                     }
                   </td>
                   <td>
-                    {student.createdAt ? 
-                      new Date(student.createdAt).toLocaleDateString() : 
-                      'N/A'
-                    }
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleAssignSection(student)}
+                      >
+                        Assign Section
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDeleteStudent(student._id, student.fullName)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                   <td>
                     <button
