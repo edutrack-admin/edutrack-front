@@ -7,7 +7,9 @@ function SectionManager() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
+  const [viewingSection, setViewingSection] = useState(null);
   const [formData, setFormData] = useState({
     department: '',
     yearLevel: 1,
@@ -68,7 +70,6 @@ function SectionManager() {
         await sections.create(formData);
         setMessage('✓ Section created successfully');
       }
-      
       setShowModal(false);
       loadSections();
     } catch (error) {
@@ -95,6 +96,18 @@ function SectionManager() {
       setMessage(`✗ Error deleting section: ${error.response?.data?.message || error.message}`);
     }
   };
+
+  const handleViewStudents = async (section) => {
+    try {
+      // Load full section details with populated students
+      const fullSection = await sections.getById(section._id);
+      setViewingSection(fullSection);
+      setShowStudentsModal(true);
+    } catch (error) {
+      setMessage(`✗ Error loading section students: ${error.message}`);
+    }
+  };
+
 
   if (loading) {
     return <div className="loading"><div className="spinner"></div></div>;
@@ -145,9 +158,23 @@ function SectionManager() {
                   </td>
                   <td>Year {section.yearLevel}</td>
                   <td>
+                    <button
+                      onClick={() => handleViewStudents(section)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#667eea',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0,
+                        font: 'inherit'
+                      }}
+                      title="Click to view students"
+                      >
                     <span className="badge badge-info">
                       {section.students?.length || 0} students
                     </span>
+                    </button>
                   </td>
                   <td>
                     {section.isActive ? (

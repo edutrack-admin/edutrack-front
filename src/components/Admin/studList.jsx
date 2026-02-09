@@ -55,10 +55,15 @@ function StudentList() {
 
       // Add student to section
       await sections.addStudents(selectedSection, [selectedStudent._id]);
-      
-      setMessage(`✓ ${selectedStudent.fullName} assigned to section successfully`);
-      setShowAssignModal(false);
-      loadStudents();
+setShowAssignModal(false);
+setMessage('⏳ Refreshing data...');
+
+// Give backend time to save
+await new Promise(resolve => setTimeout(resolve, 300));
+await loadStudents(); // ✅ Properly awaited
+
+setMessage('✓ Success');
+setTimeout(() => setMessage(''), 3000); // Auto-clear message
     } catch (error) {
       setMessage(`✗ Error assigning section: ${error.response?.data?.message || error.message}`);
     }
@@ -152,7 +157,7 @@ function StudentList() {
                   <td>
                     {student.section ? (
                       <span className="badge badge-primary">
-                        {student.section.name || student.section}
+                        {student.section || student.section.name}
                       </span>
                     ) : (
                       <span className="badge" style={{ background: '#999', color: 'white' }}>
