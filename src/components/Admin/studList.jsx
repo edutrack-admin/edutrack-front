@@ -19,6 +19,8 @@ function StudentList() {
     try {
       setLoading(true);
       const studentList = await users.getStudents();
+      console.log('Loaded students:', studentList);
+      console.log('First student section:', studentList[0]?.section);
       setStudents(studentList);
     } catch (error) {
       console.error('Error loading students:', error);
@@ -54,17 +56,26 @@ function StudentList() {
       }
 
       // Add student to section
-      await sections.addStudents(selectedSection, [selectedStudent._id]);
-setShowAssignModal(false);
-setMessage('⏳ Refreshing data...');
-
-// Give backend time to save
-await new Promise(resolve => setTimeout(resolve, 300));
-await loadStudents(); // ✅ Properly awaited
-
-setMessage('✓ Success');
-setTimeout(() => setMessage(''), 3000); // Auto-clear message
+      const response = await sections.addStudents(selectedSection, [selectedStudent._id]);
+      
+      console.log('Assignment response:', response);
+      
+      // Close modal
+      setShowAssignModal(false);
+      
+      // Show loading message
+      setMessage('⏳ Refreshing data...');
+      
+      // Give backend a moment to save, then reload
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await loadStudents();
+      
+      setMessage(`✓ ${selectedStudent.fullName} assigned to section successfully`);
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
+      console.error('Assignment error:', error);
       setMessage(`✗ Error assigning section: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -157,7 +168,7 @@ setTimeout(() => setMessage(''), 3000); // Auto-clear message
                   <td>
                     {student.section ? (
                       <span className="badge badge-primary">
-                        {student.section || student.section.name}
+                        {student.section.name || student.section}
                       </span>
                     ) : (
                       <span className="badge" style={{ background: '#999', color: 'white' }}>
