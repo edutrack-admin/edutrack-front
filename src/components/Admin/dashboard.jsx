@@ -7,6 +7,7 @@ import ProfessorList from './profList';
 import StudentList from './studList';
 import ArchiveManager from './archive';
 import SectionManager from './sectionManager';
+import AttendanceSubmissionsView from './components/Professor/viewAttendance';
 import './archive.css';
 
 function AdminDashboard() {
@@ -66,6 +67,12 @@ function AdminDashboard() {
             📚 Sections
           </button>
           <button 
+            className={`tab ${activeTab === 'submissions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('submissions')}
+          >
+            📋 Submissions
+          </button>
+          <button 
             className={`tab ${activeTab === 'archive' ? 'active' : ''}`}
             onClick={() => setActiveTab('archive')}
           >
@@ -77,6 +84,7 @@ function AdminDashboard() {
           {activeTab === 'createProf' && <CreateProfessor />}
           {activeTab === 'createStud' && <CreateStudent />}
           {activeTab === 'professors' && <ProfessorList />}
+          {activeTab === 'submissions' && <AttendanceSubmissionsView userType="admin" />}
           {activeTab === 'students' && <StudentList />}
           {activeTab === 'sections' && <SectionManager />}
           {activeTab === 'archive' && <ArchiveManager />}

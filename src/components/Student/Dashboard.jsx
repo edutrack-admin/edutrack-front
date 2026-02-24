@@ -1,14 +1,16 @@
-// StudentDashboard.jsx
+// StudentDashboard.jsx - Updated with Attendance Upload
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { assessments } from '../../services/api';
 import AssessmentForm from './assessment';
+import StudentAttendanceUpload from './upload';
 import dayjs from 'dayjs';
 
 function StudentDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('assess');
 
   const [studentAssessments, setStudentAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,44 +53,77 @@ function StudentDashboard() {
       </header>
 
       <div className="container">
-        {/* Assessment Form */}
-        <div className="card">
-          <AssessmentForm />
+        {/* Tabs */}
+        <div className="tabs">
+          <button 
+            className={`tab ${activeTab === 'assess' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assess')}
+          >
+            Submit Assessment
+          </button>
+          <button 
+            className={`tab ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+          >
+            📄 Upload Attendance
+          </button>
+          <button 
+            className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            Assessment History
+          </button>
         </div>
 
-        {/* Submitted Assessments */}
-        <div className="card" style={{ marginTop: '30px' }}>
-          <h2>Your Submitted Assessments</h2>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div></div>
-          ) : studentAssessments.length === 0 ? (
-            <p>No assessments submitted yet.</p>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Professor</th>
-                  <th>Subject</th>
-                  <th>Total Score</th>
-                  <th>Average Rating</th>
-                  <th>Submitted On</th>
-                  <th>Class Held</th>
-                  <th>Submitted On</th> 
-                </tr>
-              </thead>
-              <tbody>
-                {studentAssessments.map(a => (
-                  <tr key={a._id}>
-                    <td>{a.professorName || 'N/A'}</td>
-                    <td>{a.subject || 'N/A'}</td>
-                    <td>{a.totalScore ?? '-'}</td>
-                    <td>{a.averageRating ?? '-'}</td>
-                    <td>{a.dateTime ? dayjs(a.dateTime).format('MMM D, YYYY h:mm A') : '-'}</td>
-                    <td>{a.submittedAt ? dayjs(a.submittedAt).format('MMM D, YYYY h:mm A') : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Tab Content */}
+        <div className="tab-content">
+          {/* Assessment Form */}
+          {activeTab === 'assess' && (
+            <div className="card">
+              <AssessmentForm />
+            </div>
+          )}
+
+          {/* Attendance Upload */}
+          {activeTab === 'attendance' && (
+            <StudentAttendanceUpload />
+          )}
+
+          {/* Assessment History */}
+          {activeTab === 'history' && (
+            <div className="card">
+              <h2>Your Submitted Assessments</h2>
+              {loading ? (
+                <div className="loading"><div className="spinner"></div></div>
+              ) : studentAssessments.length === 0 ? (
+                <p>No assessments submitted yet.</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Professor</th>
+                      <th>Subject</th>
+                      <th>Total Score</th>
+                      <th>Average Rating</th>
+                      <th>Class Held</th>
+                      <th>Submitted On</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentAssessments.map(a => (
+                      <tr key={a._id}>
+                        <td>{a.professorName || 'N/A'}</td>
+                        <td>{a.subject || 'N/A'}</td>
+                        <td>{a.totalScore ?? '-'}</td>
+                        <td>{a.averageRating ?? '-'}</td>
+                        <td>{a.dateTime ? dayjs(a.dateTime).format('MMM D, YYYY h:mm A') : '-'}</td>
+                        <td>{a.submittedAt ? dayjs(a.submittedAt).format('MMM D, YYYY h:mm A') : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           )}
         </div>
 

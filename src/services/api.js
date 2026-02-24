@@ -305,6 +305,48 @@ export const sections = {
   }
 };
 
+export const attendanceSubmissions = {
+  // Student uploads attendance file
+  upload: async (formData) => {
+    const response = await api.post('/submissions/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Get student's own submissions
+  getMySubmissions: async () => {
+    const response = await api.get('/submissions/my-submissions');
+    return response.data;
+  },
+
+  // Get all submissions (with filters)
+  getAll: async (params = {}) => {
+    const response = await api.get('/submissions', { params });
+    return response.data;
+  },
+
+  // Mark submission as reviewed
+  markReviewed: async (id, reviewNotes) => {
+    const response = await api.put(`/submissions/${id}/review`, { reviewNotes });
+    return response.data;
+  },
+
+  // Delete submission
+  delete: async (id) => {
+    const response = await api.delete(`/submissions/${id}`);
+    return response.data;
+  },
+
+  // Get statistics
+  getStats: async () => {
+    const response = await api.get('/submissions/stats/summary');
+    return response.data;
+  }
+};
+
 export const publicApi = {
   getProfessors: async () => {
     const response = await api.get('/public/professors');

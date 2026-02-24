@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import MarkAttendance from './MarkAttendance';
+import AttendanceSubmissionsView from './viewAttendance';
 import './prof.css';
 
 function ProfessorDashboard() {
@@ -57,6 +58,12 @@ function ProfessorDashboard() {
             Mark Attendance
           </button>
           <button 
+            className={`tab ${activeTab === 'submissions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('submissions')}
+          >
+            📋 Student Submissions
+          </button>
+          <button 
             className={`tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
@@ -71,6 +78,7 @@ function ProfessorDashboard() {
         </div>
         <div className="tab-content">
           {activeTab === 'mark' && <MarkAttendance />}
+          {activeTab === 'submissions' && <AttendanceSubmissionsView userType="professor" />}
           {activeTab === 'history' && (
             <div className="card">
               <h2>Attendance History</h2>
