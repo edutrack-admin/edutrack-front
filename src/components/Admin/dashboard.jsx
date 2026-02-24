@@ -7,7 +7,7 @@ import ProfessorList from './profList';
 import StudentList from './studList';
 import ArchiveManager from './archive';
 import SectionManager from './sectionManager';
-import AttendanceSubmissionsView from './components/Professor/viewAttendance';
+import AttendanceSubmissionsView from '../Professor/viewAttendance';
 import './archive.css';
 
 function AdminDashboard() {
